@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* ── Tailwind v4: colores custom de la Jutsu Academy ── */
+@theme {
+  --color-ninja-dark: #1a1a2e;
+  --color-ninja-orange: #ff8c42;
+  --color-ninja-light: #e0e0e0;
+  --color-ninja-accent: #ff3b3b;
+
+  --font-sans: "Orbitron", sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-ninja-dark);
+    color: var(--color-ninja-light);
+    font-family: var(--font-sans);
+    overflow: hidden;
+    user-select: none;
+  }
+}

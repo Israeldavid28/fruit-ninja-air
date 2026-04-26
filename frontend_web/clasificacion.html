@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clasificación — Fruit Ninja Air</title>
+  <meta name="description" content="Ranking en tiempo real de Fruit Ninja Air. Los mejores ninjas de la Expoferia." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>" />
+  <link rel="stylesheet" href="/estilos/principal.css" />
+</head>
+<body style="min-height: 100vh;">
+
+<!-- ── NAVBAR ──────────────────────────────────────────── -->
+<nav class="navbar">
+  <a class="navbar__logo" href="/index.html">
+    <span class="navbar__logo-icon">🍊</span>
+    <span class="navbar__logo-texto">Fruit Ninja <span>Air</span></span>
+  </a>
+  <ul class="navbar__links">
+    <li><a href="/index.html">Inicio</a></li>
+    <li><a href="/clasificacion.html" class="activo">Clasificación</a></li>
+  </ul>
+  <a href="/login.html" class="navbar__badge" id="nav-auth-btn">
+    ⚔️ Jugar
+  </a>
+</nav>
+
+<!-- ── FONDO ────────────────────────────────────────────── -->
+<div class="fondo-hero" style="min-height: 100vh; padding-top: 60px;">
+
+  <div class="contenedor" style="padding-top: 60px; padding-bottom: 60px;">
+
+    <!-- Header -->
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 40px; flex-wrap: wrap; gap: 24px;">
+
+      <div>
+        <h1 class="texto-titulo mayusculas" style="font-size: 2.8rem; font-weight: 900; color: var(--color-fn-blanco); display: flex; align-items: center; gap: 14px;">
+          <span style="font-size: 2.2rem;">🏆</span>
+          <span>Clasi<span class="texto-naranja">ficación</span></span>
+        </h1>
+        <p style="color: var(--color-fn-tenue); margin-top: 6px; font-size: 0.9rem;">
+          Los mejores ninjas de la Expoferia 2026 · Actualización en tiempo real
+        </p>
+      </div>
+
+      <!-- Controles de filtro -->
+      <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+        <!-- Tabs de categoría -->
+        <div style="display: flex; gap: 4px; background: var(--color-fn-panel); border: 1px solid var(--color-fn-borde); border-radius: 10px; padding: 4px;">
+          <button class="tab-btn activo" data-tab="puntos" id="tab-puntos">📊 Puntuación</button>
+          <button class="tab-btn" data-tab="combo" id="tab-combo">🔥 Mejor Combo</button>
+        </div>
+        <!-- Select de período -->
+        <select class="config-select" id="filtro-periodo" style="width: 180px;">
+          <option value="todo">Todo el Tiempo</option>
+          <option value="hoy">Hoy</option>
+          <option value="semana">Esta Semana</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Indicador en vivo -->
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-fn-verde); box-shadow: 0 0 8px var(--color-fn-verde); animation: pulso 1.5s infinite;"></span>
+      <span style="font-size: 0.72rem; font-weight: 700; color: var(--color-fn-verde); text-transform: uppercase; letter-spacing: 0.1em;">En Vivo</span>
+      <span id="ultimo-update" style="font-size: 0.72rem; color: var(--color-fn-tenue);">— actualizado hace instantes</span>
+    </div>
+
+    <!-- Tabla principal -->
+    <div class="tarjeta" style="overflow: hidden; margin-bottom: 32px;">
+      <table class="tabla-ranking" id="tabla-clasificacion">
+        <thead>
+          <tr>
+            <th style="width: 70px;">Rank</th>
+            <th>Ninja</th>
+            <th id="col-principal">Puntos</th>
+            <th>Combo</th>
+            <th style="width: 100px;">Podio</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpo-clasificacion">
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 64px; color: var(--color-fn-tenue);">
+              <div style="font-size: 2rem; margin-bottom: 12px;">📊</div>
+              <div style="font-size: 0.9rem;">Cargando datos del ranking...</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mi posición (si está logueado) -->
+    <div id="mi-posicion" style="display: none; margin-bottom: 32px;">
+      <h3 class="texto-titulo" style="font-size: 0.75rem; font-weight: 700; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px;">Tu Posición</h3>
+      <div class="tarjeta" style="overflow: hidden; border-color: rgba(249,115,22,0.3);">
+        <table class="tabla-ranking">
+          <tbody>
+            <tr id="fila-mi-posicion" style="background: rgba(249,115,22,0.05);">
+              <!-- Se llena con JS -->
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Estadísticas del juego -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="tarjeta" style="padding: 20px; text-align: center;">
+        <div class="texto-titulo texto-naranja" style="font-size: 1.8rem; font-weight: 900;" id="total-jugadores">—</div>
+        <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Participantes</div>
+      </div>
+      <div class="tarjeta" style="padding: 20px; text-align: center;">
+        <div class="texto-titulo texto-naranja" style="font-size: 1.8rem; font-weight: 900;" id="total-partidas">—</div>
+        <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Partidas Totales</div>
+      </div>
+      <div class="tarjeta" style="padding: 20px; text-align: center;">
+        <div class="texto-titulo" style="font-size: 1.8rem; font-weight: 900; color: var(--color-fn-dorado);" id="puntaje-record">—</div>
+        <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Récord Global</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--color-fn-tenue);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: all 0.2s;
+  font-family: var(--font-cuerpo);
+}
+.tab-btn.activo {
+  background: var(--color-fn-naranja);
+  color: white;
+}
+.tab-btn:hover:not(.activo) {
+  color: var(--color-fn-claro);
+  background: rgba(255,255,255,0.05);
+}
+</style>
+
+<script type="module" src="/src/vistas/clasificacion.js"></script>
+</body>
+</html>

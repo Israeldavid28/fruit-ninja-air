@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dojo — Fruit Ninja Air</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>" />
+  <link rel="stylesheet" href="/estilos/principal.css" />
+  <style>
+    body { overflow: hidden; background: #000; }
+    #canvas-juego {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: none;
+    }
+    #webcam-vista {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 200px;
+      height: 150px;
+      border-radius: 12px;
+      border: 1px solid rgba(249,115,22,0.3);
+      object-fit: cover;
+      opacity: 0.7;
+      z-index: 40;
+      transform: scaleX(-1); /* espejo */
+    }
+    #ws-estado {
+      position: fixed;
+      bottom: 24px;
+      left: 234px;
+      z-index: 41;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ws-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(6,6,15,0.85);
+      border: 1px solid var(--color-fn-borde);
+      color: var(--color-fn-tenue);
+    }
+    .ws-badge.conectado { border-color: rgba(34,197,94,0.4); color: var(--color-fn-verde); }
+    .ws-badge.desconectado { border-color: rgba(239,68,68,0.4); color: #f87171; }
+    .ws-punto { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  </style>
+</head>
+<body>
+
+<!-- ── CANVAS DE JUEGO ─────────────────────────────────── -->
+<canvas id="canvas-juego"></canvas>
+
+<!-- ── WEBCAM (pequeña, esquina inferior izquierda) ─────── -->
+<video id="webcam-vista" autoplay muted playsinline></video>
+
+<!-- ── ESTADO DEL WEBSOCKET ───────────────────────────── -->
+<div id="ws-estado">
+  <div class="ws-badge" id="ws-badge-ia">
+    <span class="ws-punto"></span>
+    <span id="ws-texto">Conectando IA...</span>
+  </div>
+</div>
+
+<!-- ── HUD ─────────────────────────────────────────────── -->
+<div class="hud" id="hud">
+  <!-- Jugador -->
+  <div class="hud__bloque">
+    <div class="hud__etiqueta">Jugador</div>
+    <div class="hud__valor" id="hud-jugador" style="font-size: 1rem; color: var(--color-fn-claro);">—</div>
+  </div>
+
+  <!-- Tiempo + Combo (centro) -->
+  <div class="hud__bloque" style="align-items: center;">
+    <div class="hud__etiqueta" style="text-align: center;">Tiempo</div>
+    <div class="hud__valor hud__valor--naranja" id="hud-tiempo">60</div>
+    <div class="hud__combo" id="hud-combo" style="display: none; text-align: center;">🔥 COMBO x<span id="combo-num">2</span></div>
+  </div>
+
+  <!-- Puntaje + botones -->
+  <div class="hud__bloque" style="align-items: flex-end;">
+    <div class="hud__etiqueta">Puntaje</div>
+    <div class="hud__valor hud__valor--naranja" id="hud-puntaje">0</div>
+    <div style="display: flex; gap: 8px; margin-top: 8px; pointer-events: all;">
+      <button id="btn-config" title="Configuraciones" style="background: rgba(13,13,26,0.8); border: 1px solid var(--color-fn-borde); color: var(--color-fn-claro); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s;">⚙️</button>
+      <button id="btn-pausar" title="Pausar" style="background: rgba(13,13,26,0.8); border: 1px solid var(--color-fn-borde); color: var(--color-fn-claro); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s;">⏸</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PANEL DE CONFIGURACIONES ────────────────────────── -->
+<div class="config-panel" id="config-panel">
+  <div class="config-panel__titulo">
+    ⚙️ Configuraciones
+  </div>
+
+  <div class="config-item">
+    <div class="config-item__label">
+      <span>🎯 Sensibilidad</span>
+      <span id="val-sensibilidad">70%</span>
+    </div>
+    <input type="range" id="slider-sensibilidad" min="10" max="100" value="70" />
+  </div>
+
+  <div class="config-item">
+    <div class="config-item__label">📷 Fuente de Detección</div>
+    <select class="config-select" id="select-camara">
+      <option value="ws">WebSocket Python (MediaPipe)</option>
+      <option value="local" selected>Detección Local (JS)</option>
+    </select>
+  </div>
+
+  <div class="config-item">
+    <div class="config-item__label">
+      <span>🔊 Efectos de Sonido</span>
+      <div class="toggle-wrap">
+        <button class="toggle activo" id="toggle-sonido" aria-label="Sonido"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-item">
+    <div class="config-item__label">
+      <span>💥 Efectos Visuales</span>
+      <div class="toggle-wrap">
+        <button class="toggle activo" id="toggle-efectos" aria-label="Efectos visuales"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-item">
+    <div class="config-item__label">🎮 Modo de Juego</div>
+    <div class="modo-grupo">
+      <div class="modo-opcion activo" data-modo="normal" id="modo-normal">⏱ Normal (60s)</div>
+      <div class="modo-opcion" data-modo="infinito" id="modo-infinito">♾ Infinito</div>
+    </div>
+  </div>
+
+  <hr class="separador" />
+
+  <button id="btn-cerrar-sesion" class="btn btn-secundario" style="width: 100%; justify-content: center; color: #f87171; border-color: rgba(239,68,68,0.3);">
+    🚪 Cerrar Sesión
+  </button>
+
+  <button id="btn-cerrar-config" class="btn btn-secundario" style="width: 100%; justify-content: center; margin-top: 8px;">
+    ← Cerrar Panel
+  </button>
+</div>
+
+<!-- ── OVERLAY DE PAUSA ─────────────────────────────────── -->
+<div id="overlay-pausa" style="display: none; position: fixed; inset: 0; background: rgba(6,6,15,0.85); backdrop-filter: blur(16px); z-index: 250; align-items: center; justify-content: center; flex-direction: column; gap: 24px;">
+  <div class="texto-titulo mayusculas" style="font-size: 3rem; font-weight: 900; color: var(--color-fn-blanco);">PAUSA</div>
+  <div style="display: flex; gap: 12px;">
+    <button id="btn-reanudar" class="btn btn-primario">▶ Reanudar</button>
+    <a href="/index.html" class="btn btn-secundario">⬅ Salir</a>
+  </div>
+</div>
+
+<!-- ── PANTALLA DE FIN ──────────────────────────────────── -->
+<div class="fin-partida" id="fin-partida">
+  <div class="tarjeta tarjeta-glow" style="padding: 48px 40px; text-align: center; max-width: 420px; width: 90%; position: relative;">
+
+    <div style="font-size: 3rem; margin-bottom: 16px;">
+      <span id="fin-emoji">🍊</span>
+    </div>
+
+    <h2 class="texto-titulo mayusculas" style="font-size: 1.6rem; font-weight: 900; color: var(--color-fn-blanco); margin-bottom: 8px;">
+      Partida <span class="texto-naranja">Terminada</span>
+    </h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 28px 0;">
+      <div style="background: var(--color-fn-panel-alt); border-radius: 10px; padding: 16px;">
+        <div style="font-size: 0.65rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;">Puntaje Final</div>
+        <div class="texto-titulo" style="font-size: 2rem; font-weight: 900; color: var(--color-fn-naranja);" id="fin-puntaje">0</div>
+      </div>
+      <div style="background: var(--color-fn-panel-alt); border-radius: 10px; padding: 16px;">
+        <div style="font-size: 0.65rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;">Mejor Combo</div>
+        <div class="texto-titulo" style="font-size: 2rem; font-weight: 900; color: var(--color-fn-verde);" id="fin-combo">x0</div>
+      </div>
+      <div style="background: var(--color-fn-panel-alt); border-radius: 10px; padding: 16px;">
+        <div style="font-size: 0.65rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;">Frutas Cortadas</div>
+        <div class="texto-titulo" style="font-size: 2rem; font-weight: 900; color: var(--color-fn-blanco);" id="fin-frutas">0</div>
+      </div>
+      <div style="background: var(--color-fn-panel-alt); border-radius: 10px; padding: 16px;">
+        <div style="font-size: 0.65rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;">XP Ganada</div>
+        <div class="texto-titulo" style="font-size: 2rem; font-weight: 900; color: var(--color-fn-dorado);" id="fin-xp">+0</div>
+      </div>
+    </div>
+
+    <!-- Estado de guardado -->
+    <div id="fin-guardando" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; font-size: 0.8rem; color: var(--color-fn-tenue);">
+      <div style="width: 16px; height: 16px; border: 2px solid var(--color-fn-borde); border-top-color: var(--color-fn-naranja); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      Guardando resultado...
+    </div>
+    <div id="fin-guardado" style="display: none; margin-bottom: 20px; font-size: 0.8rem; color: var(--color-fn-verde);">✓ Puntaje guardado en el ranking</div>
+    <div id="fin-error" style="display: none; margin-bottom: 20px; font-size: 0.8rem; color: #f87171;">⚠ Error al guardar (modo sin conexión)</div>
+
+    <div style="display: flex; gap: 12px; justify-content: center;">
+      <button id="btn-reintentar" class="btn btn-primario">⚔️ Jugar de Nuevo</button>
+      <a href="/clasificacion.html" class="btn btn-secundario">🏆 Ver Ranking</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOASTS ────────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<script type="module" src="/src/vistas/dojo.js"></script>
+</body>
+</html>
