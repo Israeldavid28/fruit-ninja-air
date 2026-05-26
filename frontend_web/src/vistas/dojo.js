@@ -506,7 +506,7 @@ function mostrarCountdown() {
       numero.textContent = pasos[i];
       numero.style.transform = 'scale(1.4)';
       numero.style.opacity   = '1';
-      numero.style.color = i === 3 ? 'var(--color-fn-naranja)' : 'white';
+      numero.style.color = pasos[i] === '¡YA!' ? 'var(--color-fn-naranja)' : 'white';
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           numero.style.transform = 'scale(1)';
