@@ -6,6 +6,88 @@ import { obtenerUsuario, obtenerSesion, esperarSesion, cerrarSesion, garantizarP
 import { procesarPartida } from '../servicios/middleware.js';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
+// ── AUDIO (Web Audio API — sin archivos externos) ─────────
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function sonidoCorte() {
+  if (!estado.sonido) return;
+  const ac = getAudioCtx();
+  const t = ac.currentTime;
+  // Ruido blanco filtrado → "fsh" húmedo de corte
+  const bufLen = Math.floor(ac.sampleRate * 0.18);
+  const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource();
+  src.buffer = buf;
+  const bpf = ac.createBiquadFilter();
+  bpf.type = 'bandpass';
+  bpf.frequency.setValueAtTime(2200, t);
+  bpf.frequency.exponentialRampToValueAtTime(600, t + 0.12);
+  bpf.Q.value = 0.8;
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(0.55, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  src.connect(bpf); bpf.connect(gain); gain.connect(ac.destination);
+  src.start(t); src.stop(t + 0.18);
+}
+
+function sonidoPowerup() {
+  if (!estado.sonido) return;
+  const ac = getAudioCtx();
+  const t = ac.currentTime;
+  // Arpegio ascendente C5 → E5 → C6
+  [523.25, 659.25, 1046.5].forEach((freq, idx) => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const s = t + idx * 0.1;
+    gain.gain.setValueAtTime(0, s);
+    gain.gain.linearRampToValueAtTime(0.28, s + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, s + 0.22);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(s); osc.stop(s + 0.22);
+  });
+}
+
+function sonidoBeep(freq, duracion, volumen = 0.35) {
+  // Beep limpio para 3-2-1
+  if (!estado.sonido) return;
+  const ac = getAudioCtx();
+  const t = ac.currentTime;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(volumen, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duracion);
+  osc.connect(gain); gain.connect(ac.destination);
+  osc.start(t); osc.stop(t + duracion);
+}
+
+function sonidoStart() {
+  // Acorde mayor para "¡YA!"
+  if (!estado.sonido) return;
+  const ac = getAudioCtx();
+  const t = ac.currentTime;
+  [523.25, 659.25, 783.99].forEach(freq => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(t); osc.stop(t + 0.5);
+  });
+}
+
 // ── CONSTANTES ───────────────────────────────────────────
 const WS_URL      = 'ws://localhost:8000/ws';
 const DURACION    = 60;        // segundos
@@ -15,10 +97,10 @@ const RADIO_COLISION = 40;     // px
 
 // Power-up definitions
 const POWERUP_DEFS = {
-  estrella: { emoji: '⭐', label: '×2 Puntos', duracion: 5000, color: '#f59e0b' },
-  hielo:    { emoji: '❄️', label: 'Congelar',  duracion: 4000, color: '#60a5fa' },
-  reloj:    { emoji: '⏰', label: '+10s',       duracion: 0,    color: '#4ade80' },
-  escudo:   { emoji: '🛡️', label: 'Escudo',    duracion: 0,    color: '#c084fc' },
+  estrella: { id: 'estrella', src: '/frutas/estrella.png', emoji: '⭐', label: '×2 Puntos', duracion: 5000, color: '#f59e0b' },
+  hielo:    { id: 'hielo', src: '/frutas/hielo.png', emoji: '❄️', label: 'Congelar',  duracion: 4000, color: '#60a5fa' },
+  reloj:    { id: 'reloj', src: '/frutas/reloj.png', emoji: '⏰', label: '+10s',       duracion: 0,    color: '#4ade80' },
+  escudo:   { id: 'escudo', src: '/frutas/escudo.png', emoji: '🛡️', label: 'Escudo',    duracion: 0,    color: '#c084fc' },
 };
 
 // ── CATÁLOGO DE FRUTAS CON IMÁGENES ──────────────────────
@@ -36,7 +118,14 @@ const BOMBA_DEF = { id: 'bomba', src: '/frutas/bomba.png', esBomba: true };
 
 // Pre-carga todas las imágenes
 const IMGS = {};
-[...FRUTAS_CATALOGO, BOMBA_DEF].forEach(f => {
+[
+  ...FRUTAS_CATALOGO, 
+  BOMBA_DEF,
+  POWERUP_DEFS.estrella,
+  POWERUP_DEFS.hielo,
+  POWERUP_DEFS.reloj,
+  POWERUP_DEFS.escudo
+].forEach(f => {
   const img = new Image();
   img.src = f.src;
   IMGS[f.id] = img;
@@ -246,6 +335,7 @@ function spawnFruta() {
     const tipos = Object.keys(POWERUP_DEFS);
     tipo  = tipos[Math.floor(Math.random() * tipos.length)];
     emoji = POWERUP_DEFS[tipo].emoji;
+    imgObj = IMGS[tipo];
   } else if (esBomba) {
     emoji  = '💣';
     imgObj = IMGS['bomba'];
@@ -304,12 +394,14 @@ function verificarColisiones() {
       }
 
       if (f.esPowerup) {
+        sonidoPowerup();
         activarPowerup(f.tipoPowerup);
         crearParticulas(fx, fy, f.emoji);
         return;
       }
 
       // Fruta normal
+      sonidoCorte();
       estado.combo++;
       if (estado.combo > estado.comboMax) estado.comboMax = estado.combo;
       const bonus = Math.max(0, estado.combo - 1) * PUNTOS_COMBO;
@@ -503,16 +595,27 @@ function mostrarCountdown() {
     const pasos = ['3', '2', '1', '¡YA!'];
     let i = 0;
 
+    // Frecuencias: 3→440Hz, 2→440Hz, 1→523Hz (C5), ¡YA!→sonidoStart
+    const beepFreqs = [440, 440, 523.25, 0];
+
     function mostrarPaso() {
+      const esYa = pasos[i] === '¡YA!';
       numero.textContent = pasos[i];
       numero.style.transform = 'scale(1.4)';
       numero.style.opacity   = '1';
-      numero.style.color = pasos[i] === '¡YA!' ? 'var(--color-fn-naranja)' : 'white';
+      numero.style.color = esYa ? 'var(--color-fn-naranja)' : 'white';
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           numero.style.transform = 'scale(1)';
         });
       });
+
+      // Sonido del paso
+      if (esYa) {
+        sonidoStart();
+      } else {
+        sonidoBeep(beepFreqs[i], 0.25, i === 2 ? 0.5 : 0.35);
+      }
 
       i++;
       if (i < pasos.length) {
@@ -631,6 +734,12 @@ function gameLoop(timestamp) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // Efecto de Hielo (Frost Overlay)
+  if (powerups.hielo) {
+    ctx.fillStyle = 'rgba(96, 165, 250, 0.15)'; // Azul claro transparente
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
   if (!estado.pausado) {
     // Spawn aleatorio
     if (Math.random() < 0.018) spawnFruta();
@@ -683,7 +792,7 @@ function gameLoop(timestamp) {
     });
     mitades = mitades.filter(m => m.alpha > 0 && m.y < canvas.height + 150);
 
-    // Partículas solo para power-ups (no para frutas normales)
+    // Partículas (y texto de powerups)
     efectosVisuales.forEach(p => {
       p.x    += p.vx;
       p.y    += p.vy;
@@ -691,10 +800,16 @@ function gameLoop(timestamp) {
       p.vida -= 0.04;
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.vida);
-      ctx.font = `${p.size}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+      ctx.font = `bold ${p.size}px "Inter", sans-serif`;
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(p.emoji, p.x, p.y);
+      if (p.texto) {
+        ctx.fillStyle = p.color || 'white';
+        ctx.fillText(p.texto, p.x, p.y);
+      } else if (p.emoji) {
+        ctx.font = `${p.size}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.fillText(p.emoji, p.x, p.y);
+      }
       ctx.restore();
     });
     efectosVisuales = efectosVisuales.filter(p => p.vida > 0);
@@ -734,6 +849,38 @@ function gameLoop(timestamp) {
       ctx.shadowColor = 'rgba(249,115,22,1)';
       ctx.fill();
       ctx.restore();
+
+      // Efecto de Escudo (Anillo protector)
+      if (powerups.escudo) {
+        const pulse = 1 + Math.sin(timestamp * 0.005) * 0.1;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, 35 * pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(192, 132, 252, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(192, 132, 252, 1)';
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(px, py, 35 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(192, 132, 252, 0.2)';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Efecto Estrella (Aura dorada)
+      if (powerups.multiplicador) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, 25, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.lineDashOffset = -timestamp * 0.05;
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
