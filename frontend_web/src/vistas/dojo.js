@@ -600,17 +600,31 @@ async function resolverSesion() {
   }
 
   try {
+    const tieneCode = params.has('code') || window.location.hash.includes('access_token');
+
+    if (tieneCode) {
+      // Si venimos de Google, esperar a que Supabase termine de canjear el código
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('El inicio de sesión tardó demasiado.')), 6000);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_IN' || session) {
+            clearTimeout(timeout);
+            subscription.unsubscribe();
+            resolve(session);
+          }
+        });
+      });
+      // Limpiamos la URL para no volver a procesar el código
+      history.replaceState(null, '', window.location.pathname);
+    }
+
+    // Ya sea que acabamos de canjear el código o ya teníamos sesión, obtenemos la sesión actual
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) throw sessionError;
     
     if (!sessionData.session) {
       console.warn("No se encontró sesión activa.");
       return false;
-    }
-
-    // Limpiar URL si venimos de OAuth
-    if (params.has('code') || window.location.hash.includes('access_token')) {
-      history.replaceState(null, '', window.location.pathname);
     }
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -631,7 +645,7 @@ async function resolverSesion() {
     if (hudJugador) hudJugador.textContent = nombreJugador;
     return true;
   } catch (err) {
-    alert("Error crítico al resolver sesión: " + err.message);
+    alert("Error al iniciar sesión: " + err.message);
     console.error("Error en resolverSesion:", err);
     return false;
   }
