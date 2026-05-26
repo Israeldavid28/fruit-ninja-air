@@ -31,7 +31,7 @@
   <div class="contenedor" style="padding-top: 60px; padding-bottom: 60px;">
 
     <!-- Header -->
-    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 40px; flex-wrap: wrap; gap: 24px;">
+    <div id="clasificacion-header" style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 40px; flex-wrap: wrap; gap: 24px;">
 
       <div>
         <h1 class="texto-titulo mayusculas" style="font-size: 2.8rem; font-weight: 900; color: var(--color-fn-blanco); display: flex; align-items: center; gap: 14px;">
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Controles de filtro -->
-      <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+      <div id="clasificacion-filtros" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
         <!-- Tabs de categoría -->
         <div style="display: flex; gap: 4px; background: var(--color-fn-panel); border: 1px solid var(--color-fn-borde); border-radius: 10px; padding: 4px;">
           <button class="tab-btn activo" data-tab="puntos" id="tab-puntos">📊 Puntuación</button>
@@ -105,7 +105,7 @@
     </div>
 
     <!-- Estadísticas del juego -->
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+    <div id="grid-stats-clasificacion" class="stats-grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
       <div class="tarjeta" style="padding: 20px; text-align: center;">
         <div class="texto-titulo texto-naranja" style="font-size: 1.8rem; font-weight: 900;" id="total-jugadores">—</div>
         <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Participantes</div>

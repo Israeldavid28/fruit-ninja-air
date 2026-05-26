@@ -9,10 +9,38 @@ import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 // ── CONSTANTES ───────────────────────────────────────────
 const WS_URL      = 'ws://localhost:8000/ws';
 const DURACION    = 60;        // segundos
-const FRUTAS_DEF  = ['🍎','🍊','🍋','🍇','🍓','🍉','🥝','🍑'];
 const PUNTOS_FRUTA = 10;
 const PUNTOS_COMBO = 5;        // bonus por combo
 const RADIO_COLISION = 40;     // px
+
+// Power-up definitions
+const POWERUP_DEFS = {
+  estrella: { emoji: '⭐', label: '×2 Puntos', duracion: 5000, color: '#f59e0b' },
+  hielo:    { emoji: '❄️', label: 'Congelar',  duracion: 4000, color: '#60a5fa' },
+  reloj:    { emoji: '⏰', label: '+10s',       duracion: 0,    color: '#4ade80' },
+  escudo:   { emoji: '🛡️', label: 'Escudo',    duracion: 0,    color: '#c084fc' },
+};
+
+// ── CATÁLOGO DE FRUTAS CON IMÁGENES ──────────────────────
+const FRUTAS_CATALOGO = [
+  { id: 'manzana', src: '/frutas/manzana.png',  esBomba: false },
+  { id: 'naranja', src: '/frutas/naranja.png',  esBomba: false },
+  { id: 'limon',   src: '/frutas/limon.png',    esBomba: false },
+  { id: 'sandia',  src: '/frutas/sandia.png',   esBomba: false },
+  { id: 'fresa',   src: '/frutas/fresa.png',    esBomba: false },
+  { id: 'durazno', src: '/frutas/durazno.png',  esBomba: false },
+  { id: 'kiwi',    src: '/frutas/kiwi.png',     esBomba: false },
+  { id: 'uvas',    src: '/frutas/uvas.png',     esBomba: false },
+];
+const BOMBA_DEF = { id: 'bomba', src: '/frutas/bomba.png', esBomba: true };
+
+// Pre-carga todas las imágenes
+const IMGS = {};
+[...FRUTAS_CATALOGO, BOMBA_DEF].forEach(f => {
+  const img = new Image();
+  img.src = f.src;
+  IMGS[f.id] = img;
+});
 
 // ── ESTADO DEL JUEGO ─────────────────────────────────────
 let estado = {
@@ -28,6 +56,14 @@ let estado = {
   sonido:     true,
   sensibilidad: 0.7,
   fuenteDeteccion: 'local',
+};
+
+// ── ESTADO DE POWER-UPS ───────────────────────────────────
+let powerups = {
+  multiplicador: false,  // ⭐ x2 puntos activo
+  hielo:         false,  // ❄️ frutas lentas activo
+  escudo:        false,  // 🛡️ escudo activo (absorbe 1 bomba)
+  timers:        {},     // { [tipo]: timeoutId }
 };
 
 let usuario    = null;
@@ -59,7 +95,7 @@ const toastContainer= document.getElementById('toast-container');
 
 // ── FRUTAS EN VUELO ──────────────────────────────────────
 let frutas = [];
-let efectosVisuales = [];  // partículas de corte
+let mitades = [];          // mitades de fruta cortada (animación split)
 let estela = [];           // rastro del dedo
 
 // ── WEBSOCKET / POSICIÓN DEL DEDO ────────────────────────
@@ -197,20 +233,44 @@ redimensionar();
 
 // ── SPAWN DE FRUTAS ──────────────────────────────────────
 function spawnFruta() {
-  const espirado = Math.random() < 0.08; // 8% probabilidad de bomba
+  const r = Math.random();
+  const esBomba   = r < 0.08;
+  const esPowerup = !esBomba && r < 0.14;
+
+  let tipo = null;
+  let imgObj = null;
+  let emoji = '';
+
+  if (esPowerup) {
+    const tipos = Object.keys(POWERUP_DEFS);
+    tipo  = tipos[Math.floor(Math.random() * tipos.length)];
+    emoji = POWERUP_DEFS[tipo].emoji;
+  } else if (esBomba) {
+    emoji  = '💣';
+    imgObj = IMGS['bomba'];
+  } else {
+    const def = FRUTAS_CATALOGO[Math.floor(Math.random() * FRUTAS_CATALOGO.length)];
+    tipo   = def.id;
+    imgObj = IMGS[def.id];
+  }
+
+  const velBase = powerups.hielo ? 0.004 : 0.008;
   frutas.push({
-    id:     Math.random(),
-    emoji:  espirado ? '💣' : FRUTAS_DEF[Math.floor(Math.random() * FRUTAS_DEF.length)],
-    esBomba: espirado,
-    x:      0.1 + Math.random() * 0.8,       // 10%-90% del ancho
-    y:      1.05,                              // empieza abajo
-    vx:     (Math.random() - 0.5) * 0.005,
-    vy:     -(0.008 + Math.random() * 0.006), // velocidad hacia arriba
-    ay:     0.00012,                           // gravedad
-    rot:    Math.random() * Math.PI * 2,
-    rotVel: (Math.random() - 0.5) * 0.08,
-    size:   45 + Math.random() * 25,
-    viva:   true,
+    id:          Math.random(),
+    emoji,
+    img:         imgObj,
+    esBomba,
+    esPowerup,
+    tipoPowerup: tipo,
+    x:           0.1 + Math.random() * 0.8,
+    y:           1.05,
+    vx:          (Math.random() - 0.5) * 0.005,
+    vy:          -(velBase + Math.random() * 0.006),
+    ay:          0.00012,
+    rot:         Math.random() * Math.PI * 2,
+    rotVel:      (Math.random() - 0.5) * 0.05,
+    size:        65 + Math.random() * 30,
+    viva:        true,
   });
 }
 
@@ -231,37 +291,101 @@ function verificarColisiones() {
       f.viva = false;
 
       if (f.esBomba) {
-        terminarPartida(true); // BOMBA
+        if (powerups.escudo) {
+          // Escudo absorbe la bomba
+          desactivarPowerup('escudo');
+          mostrarToast('🛡️ ¡Escudo activado! Bomba bloqueada', 'verde');
+          crearParticulas(fx, fy, '💥');
+          return;
+        }
+        terminarPartida(true);
         return;
       }
 
-      // Puntaje + combo
+      if (f.esPowerup) {
+        activarPowerup(f.tipoPowerup);
+        crearParticulas(fx, fy, f.emoji);
+        return;
+      }
+
+      // Fruta normal
       estado.combo++;
       if (estado.combo > estado.comboMax) estado.comboMax = estado.combo;
       const bonus = Math.max(0, estado.combo - 1) * PUNTOS_COMBO;
-      estado.puntaje += PUNTOS_FRUTA + bonus;
+      const multiplicador = powerups.multiplicador ? 2 : 1;
+      estado.puntaje += (PUNTOS_FRUTA + bonus) * multiplicador;
       estado.frutasCorte++;
 
-      // Efectos
-      crearParticulas(fx, fy, f.emoji);
+      // Animación de corte en dos mitades
+      crearMitades(f, fx, fy);
       actualizarHUD();
       mostrarCombo();
     }
   });
 }
 
-// ── PARTÍCULAS DE CORTE ──────────────────────────────────
+// ── ANIMACIÓN DE CORTE EN DOS MITADES ────────────────────
+/**
+ * Crea dos mitades de la fruta que vuelan separadas, rotan y se desvanecen.
+ * Para power-ups / bomba usamos el emoji como fallback visual.
+ */
+function crearMitades(fruta, fx, fy) {
+  const vel = 3 + Math.random() * 2;
+  const baseData = {
+    img:    fruta.img ?? null,
+    emoji:  fruta.emoji,
+    size:   fruta.size,
+    rot:    fruta.rot,
+    vy:     -(2 + Math.random() * 3),
+    ay:     0.2,
+    alpha:  1,
+  };
+  // Mitad izquierda vuela hacia la izquierda y rota en sentido anti-horario
+  mitades.push({ ...baseData, lado: 'izq', x: fx, y: fy, vx: -(vel + Math.random()*1.5), rotVel: -(0.07 + Math.random()*0.08) });
+  // Mitad derecha vuela hacia la derecha y rota en sentido horario
+  mitades.push({ ...baseData, lado: 'der', x: fx, y: fy, vx: +(vel + Math.random()*1.5), rotVel: +(0.07 + Math.random()*0.08) });
+}
+
+/** Dibuja una mitad con clip rect para el efecto de corte */
+function dibujarMitad(m) {
+  if (m.alpha <= 0) return;
+  const s = m.size;
+  const r = s / 2;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, m.alpha);
+  ctx.translate(m.x, m.y);
+  ctx.rotate(m.rot);
+  ctx.beginPath();
+  if (m.lado === 'izq') {
+    ctx.rect(-r, -r, r, r * 2);   // mitad izquierda
+  } else {
+    ctx.rect(0,  -r, r, r * 2);   // mitad derecha
+  }
+  ctx.clip();
+  if (m.img && m.img.complete && m.img.naturalWidth > 0) {
+    ctx.drawImage(m.img, -r, -r, s, s);
+  } else {
+    // Fallback emoji para power-ups y bomba
+    ctx.font = `${s * 0.7}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(m.emoji, 0, 0);
+  }
+  ctx.restore();
+}
+
+/** @deprecated Kept only for power-ups which don’t have custom images */
 function crearParticulas(x, y, emoji) {
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 6; i++) {
     const angulo = Math.random() * Math.PI * 2;
-    const vel    = 2 + Math.random() * 4;
+    const vel    = 2 + Math.random() * 3;
     efectosVisuales.push({
       x, y,
-      vx:    Math.cos(angulo) * vel,
-      vy:    Math.sin(angulo) * vel,
-      vida:  1,
-      emoji: emoji,
-      size:  16 + Math.random() * 10,
+      vx: Math.cos(angulo) * vel,
+      vy: Math.sin(angulo) * vel,
+      vida: 1,
+      emoji,
+      size: 18 + Math.random() * 10,
     });
   }
 }
@@ -281,6 +405,182 @@ function mostrarCombo() {
       estado.combo = 0;
     }, 1500);
   }
+}
+
+// ── POWER-UPS ─────────────────────────────────────────────
+function activarPowerup(tipo) {
+  const def = POWERUP_DEFS[tipo];
+  if (!def) return;
+
+  // Tiempo extra: efecto instantáneo, sin duración
+  if (tipo === 'reloj') {
+    estado.tiempoRestante = Math.min(estado.tiempoRestante + 10, estado.modo === 'normal' ? DURACION + 20 : Infinity);
+    mostrarToast(`⏰ +10 segundos`, 'verde');
+    actualizarHUD();
+    return;
+  }
+
+  // Escudo: dura hasta absorber 1 bomba
+  if (tipo === 'escudo') {
+    powerups.escudo = true;
+    mostrarToast('🛡️ Escudo activado', 'morado');
+    renderizarHudPowerups();
+    return;
+  }
+
+  // Estrella: x2 puntos por 5s
+  if (tipo === 'estrella') {
+    powerups.multiplicador = true;
+    mostrarToast('⭐ ×2 Puntos activado!', 'dorado');
+    clearTimeout(powerups.timers.estrella);
+    powerups.timers.estrella = setTimeout(() => {
+      powerups.multiplicador = false;
+      renderizarHudPowerups();
+    }, POWERUP_DEFS.estrella.duracion);
+    renderizarHudPowerups();
+    return;
+  }
+
+  // Hielo: frutas lentas por 4s
+  if (tipo === 'hielo') {
+    powerups.hielo = true;
+    mostrarToast('❄️ Frutas congeladas!', 'azul');
+    // Ralentizar frutas ya en vuelo
+    frutas.forEach(f => { f.vy *= 0.4; f.vx *= 0.4; });
+    clearTimeout(powerups.timers.hielo);
+    powerups.timers.hielo = setTimeout(() => {
+      powerups.hielo = false;
+      renderizarHudPowerups();
+    }, POWERUP_DEFS.hielo.duracion);
+    renderizarHudPowerups();
+  }
+}
+
+function desactivarPowerup(tipo) {
+  if (tipo === 'escudo') {
+    powerups.escudo = false;
+    renderizarHudPowerups();
+  }
+}
+
+function renderizarHudPowerups() {
+  const hud = document.getElementById('hud-powerups');
+  if (!hud) return;
+  hud.innerHTML = '';
+
+  const activos = [];
+  if (powerups.multiplicador) activos.push({ tipo: 'estrella' });
+  if (powerups.hielo)         activos.push({ tipo: 'hielo' });
+  if (powerups.escudo)        activos.push({ tipo: 'escudo' });
+
+  activos.forEach(({ tipo }) => {
+    const def = POWERUP_DEFS[tipo];
+    const badge = document.createElement('div');
+    badge.style.cssText = `
+      display:flex; align-items:center; gap:6px;
+      padding:6px 14px; border-radius:99px;
+      background:rgba(6,6,15,0.85);
+      border:1px solid ${def.color}55;
+      font-size:0.75rem; font-weight:700;
+      color:${def.color};
+      text-transform:uppercase; letter-spacing:0.06em;
+      animation: powerup-entrada 0.3s ease-out;
+    `;
+    badge.innerHTML = `<span>${def.emoji}</span><span>${def.label}</span>`;
+    hud.appendChild(badge);
+  });
+}
+
+// ── COUNTDOWN ─────────────────────────────────────────────
+function mostrarCountdown() {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('overlay-countdown');
+    const numero  = document.getElementById('countdown-numero');
+    if (!overlay || !numero) { resolve(); return; }
+
+    overlay.style.display = 'flex';
+    const pasos = ['3', '2', '1', '¡YA!'];
+    let i = 0;
+
+    function mostrarPaso() {
+      numero.textContent = pasos[i];
+      numero.style.transform = 'scale(1.4)';
+      numero.style.opacity   = '1';
+      numero.style.color = i === 3 ? 'var(--color-fn-naranja)' : 'white';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          numero.style.transform = 'scale(1)';
+        });
+      });
+
+      i++;
+      if (i < pasos.length) {
+        setTimeout(mostrarPaso, 900);
+      } else {
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          resolve();
+        }, 600);
+      }
+    }
+    mostrarPaso();
+  });
+}
+
+// ── TUTORIAL ──────────────────────────────────────────────
+let tutorialPaso = 0;
+const TUTORIAL_KEY = 'frutix_tutorial_visto';
+
+function mostrarTutorial() {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('overlay-tutorial');
+    if (!overlay) { resolve(); return; }
+
+    tutorialPaso = 0;
+    actualizarPasoTutorial();
+    overlay.style.display = 'flex';
+
+    const btnNext  = document.getElementById('tutorial-next');
+    const btnPrev  = document.getElementById('tutorial-prev');
+    const btnSkip  = document.getElementById('tutorial-skip');
+
+    function cerrarTutorial() {
+      overlay.style.display = 'none';
+      localStorage.setItem(TUTORIAL_KEY, '1');
+      resolve();
+    }
+
+    btnNext.onclick = () => {
+      if (tutorialPaso < 2) {
+        tutorialPaso++;
+        actualizarPasoTutorial();
+      } else {
+        cerrarTutorial();
+      }
+    };
+
+    btnPrev.onclick = () => {
+      if (tutorialPaso > 0) {
+        tutorialPaso--;
+        actualizarPasoTutorial();
+      }
+    };
+
+    btnSkip.onclick = cerrarTutorial;
+  });
+}
+
+function actualizarPasoTutorial() {
+  document.querySelectorAll('.tutorial-paso').forEach(el => {
+    el.style.display = el.dataset.paso === String(tutorialPaso) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tutorial-dot').forEach(el => {
+    el.classList.toggle('activo', el.dataset.dot === String(tutorialPaso));
+  });
+  const btnNext = document.getElementById('tutorial-next');
+  const btnPrev = document.getElementById('tutorial-prev');
+  if (btnNext) btnNext.textContent = tutorialPaso === 2 ? '¡Jugar! →' : 'Siguiente →';
+  if (btnPrev) btnPrev.style.display = tutorialPaso > 0 ? 'inline-flex' : 'none';
 }
 
 // ── HUD ──────────────────────────────────────────────────
@@ -350,7 +650,7 @@ function gameLoop(timestamp) {
     verificarColisiones();
   }
 
-  // Dibujar frutas
+  // Dibujar frutas (imágenes 2D)
   frutas.forEach(f => {
     if (!f.viva) return;
     const fx = f.x * canvas.width;
@@ -358,24 +658,39 @@ function gameLoop(timestamp) {
     ctx.save();
     ctx.translate(fx, fy);
     ctx.rotate(f.rot);
-    ctx.font = `${f.size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(f.emoji, 0, 0);
+    if (f.img && f.img.complete && f.img.naturalWidth > 0) {
+      ctx.drawImage(f.img, -f.size / 2, -f.size / 2, f.size, f.size);
+    } else {
+      // Fallback emoji para power-ups y bomba
+      ctx.font = `${f.size * 0.7}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.emoji, 0, 0);
+    }
     ctx.restore();
   });
 
-  // Partículas
+  // Mitades cortadas (animación split en 2)
   if (estado.efectos) {
-    efectosVisuales.forEach((p, i) => {
+    mitades.forEach(m => {
+      m.x    += m.vx;
+      m.y    += m.vy;
+      m.vy   += m.ay;
+      m.rot  += m.rotVel;
+      m.alpha -= 0.025;
+      dibujarMitad(m);
+    });
+    mitades = mitades.filter(m => m.alpha > 0 && m.y < canvas.height + 150);
+
+    // Partículas solo para power-ups (no para frutas normales)
+    efectosVisuales.forEach(p => {
       p.x    += p.vx;
       p.y    += p.vy;
       p.vy   += 0.15;
       p.vida -= 0.04;
-
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.vida);
-      ctx.font = `${p.size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+      ctx.font = `${p.size}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(p.emoji, p.x, p.y);
@@ -434,9 +749,18 @@ function iniciarPartida() {
   estado.frutasCorte     = 0;
   estado.tiempoRestante  = DURACION;
   frutas                 = [];
+  mitades                = [];
   efectosVisuales        = [];
   estela                 = [];
   ultimoTick             = null;
+
+  // Limpiar power-ups anteriores
+  Object.values(powerups.timers).forEach(t => clearTimeout(t));
+  powerups.multiplicador = false;
+  powerups.hielo         = false;
+  powerups.escudo        = false;
+  powerups.timers        = {};
+  renderizarHudPowerups();
 
   if (finPanel)   finPanel.classList.remove('visible');
   if (pausaOverlay) pausaOverlay.style.display = 'none';
@@ -527,7 +851,10 @@ document.getElementById('btn-reanudar')?.addEventListener('click', () => {
   requestAnimationFrame(gameLoop);
 });
 
-document.getElementById('btn-reintentar')?.addEventListener('click', iniciarPartida);
+document.getElementById('btn-reintentar')?.addEventListener('click', async () => {
+  await mostrarCountdown();
+  iniciarPartida();
+});
 
 document.getElementById('btn-cerrar-sesion')?.addEventListener('click', () => {
   if (modoInvitado) {
@@ -700,8 +1027,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   mostrarLobby(nombreJugador);
 
-  btnComenzar?.addEventListener('click', () => {
+  btnComenzar?.addEventListener('click', async () => {
     ocultarLobby();
+    // Tutorial en primera sesión
+    if (!localStorage.getItem(TUTORIAL_KEY)) {
+      await mostrarTutorial();
+    }
+    await mostrarCountdown();
     iniciarPartida();
   });
 });

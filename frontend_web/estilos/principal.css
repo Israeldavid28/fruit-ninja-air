@@ -753,8 +753,125 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 20px;
 }
 
-/* Responsive: ocultar nav links en mobile */
-@media (max-width: 640px) {
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE FIRST
+═══════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 768px) ─────────────────────────────── */
+@media (max-width: 768px) {
+  /* Navbar */
+  .navbar { padding: 0 1rem; }
   .navbar__links { display: none; }
-  .hud__valor    { font-size: 1.4rem; }
+  .navbar__badge { padding: 6px 10px; font-size: 0.7rem; }
+
+  /* Contenedor */
+  .contenedor { padding: 0 16px; }
+
+  /* Secciones */
+  .seccion { padding: 48px 0; }
+
+  /* Grid features: 1 columna */
+  .grid-features { grid-template-columns: 1fr; }
+
+  /* Tabla ranking: ocultar columna Combo en tablet */
+  .tabla-ranking th:nth-child(4),
+  .tabla-ranking td:nth-child(4) { display: none; }
+
+  /* Config panel: ancho completo en mobile */
+  .config-panel {
+    width: 100%;
+    right: -100%;
+  }
+
+  /* HUD del dojo */
+  .hud { padding: 10px 12px; }
+  .hud__valor { font-size: 1.4rem; }
+  .hud__etiqueta { font-size: 0.45rem; }
+  .hud__combo { font-size: 0.85rem; }
+}
+
+/* ── Mobile (≤ 480px) ─────────────────────────────── */
+@media (max-width: 480px) {
+  /* Navbar */
+  .navbar__logo-texto { font-size: 0.85rem; }
+
+  /* Botones */
+  .btn-primario  { padding: 12px 20px; font-size: 0.82rem; }
+  .btn-secundario { padding: 12px 16px; font-size: 0.78rem; }
+
+  /* Tabla ranking: más compacta */
+  .tabla-ranking th,
+  .tabla-ranking td { padding: 10px 8px; font-size: 0.8rem; }
+
+  /* Tabla: ocultar columna Podio también en mobile pequeño */
+  .tabla-ranking th:nth-child(5),
+  .tabla-ranking td:nth-child(5) { display: none; }
+
+  /* Stats grid: 1 columna en móvil pequeño */
+  .stats-grid-3 { grid-template-columns: 1fr !important; }
+
+  /* Eliminar bordes derecho en stats al colapsar a 1 col */
+  .stats-grid-3 .stat-item { border-right: none !important; border-bottom: 1px solid var(--color-fn-borde); }
+
+  /* HUD dojo compacto */
+  .hud__valor { font-size: 1.1rem; }
+  .hud { padding: 8px 10px; }
+
+  /* Pill en vivo más pequeña */
+  .pill-en-vivo { font-size: 0.65rem; padding: 6px 12px; }
+
+  /* Dojo: webcam más pequeña en móvil */
+  #webcam-vista { width: 100px !important; height: 75px !important; bottom: 10px !important; left: 10px !important; }
+  #ws-estado    { left: 120px !important; bottom: 12px !important; }
+}
+
+/* ── Grids responsive (index + clasificacion) ─────── */
+@media (max-width: 768px) {
+  /* Hero: colapsar a 1 columna, ocultar preview */
+  #hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  #hero-grid > div:last-child { display: none; }  /* ocultar canvas decorativo */
+
+  /* Stats de index: 3→1 col */
+  .stats-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .stats-grid-3 .stat-item {
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-fn-borde);
+  }
+  .stats-grid-3 .stat-item:last-child { border-bottom: none; }
+
+  /* Cómo jugar: 3→1 col */
+  #como-jugar-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* Clasificacion: stats 3→1 col */
+  #grid-stats-clasificacion {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Clasificacion: header colapsar */
+  #clasificacion-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  #clasificacion-filtros {
+    align-items: flex-start !important;
+    width: 100%;
+  }
+  #clasificacion-filtros select { width: 100% !important; }
+  #clasificacion-filtros > div { width: 100%; justify-content: stretch; }
+  #clasificacion-filtros .tab-btn { flex: 1; text-align: center; }
+
+  /* Dojo: config panel ocupa pantalla completa */
+  .config-panel { width: 100% !important; right: -100% !important; }
+  .config-panel.abierto { right: 0 !important; }
+
+  /* Lobby overlay: padding lateral */
+  #overlay-lobby { padding: 24px; }
 }

@@ -36,7 +36,8 @@
   <section class="fondo-hero" id="inicio"
     style="min-height: 100vh; padding-top: 60px; display: flex; align-items: center;">
     <div class="contenedor"
-      style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; padding-top: 60px; padding-bottom: 80px;">
+      style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; padding-top: 60px; padding-bottom: 80px;"
+      id="hero-grid">
 
       <!-- Columna izquierda: texto -->
       <div style="display: flex; flex-direction: column; gap: 28px;">
@@ -134,7 +135,7 @@
   <!-- ── ESTADÍSTICAS RÁPIDAS ─────────────────────────────── -->
   <div
     style="background: var(--color-fn-panel); border-top: 1px solid var(--color-fn-borde); border-bottom: 1px solid var(--color-fn-borde);">
-    <div class="contenedor" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;">
+    <div class="contenedor stats-grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;">
       <div class="stat-item" style="padding: 24px; text-align: center; border-right: 1px solid var(--color-fn-borde);">
         <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-jugadores">—</div>
         <div
@@ -219,7 +220,7 @@
           ¿Cómo <span class="texto-naranja">Jugar?</span>
         </h2>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; text-align: center;">
+      <div id="como-jugar-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; text-align: center;">
 
         <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
           <div
