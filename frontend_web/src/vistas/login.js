@@ -71,5 +71,14 @@ btnInvitado?.addEventListener('click', () => {
 
 // ── INICIALIZAR ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const errorDesc = params.get('error_description');
+  if (errorDesc) {
+    // Si venimos de un fallo en OAuth (ej: desde dojo.html o redirección directa)
+    mostrarError(`Google rechazó la conexión: ${decodeURIComponent(errorDesc)}`);
+    // Limpiar la URL para que no siga saliendo el error al recargar
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
   verificarSesionExistente();
 });

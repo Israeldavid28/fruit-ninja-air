@@ -592,9 +592,16 @@ async function resolverSesion() {
     return true;
   }
 
+  // Si hay error de OAuth, Supabase lo pasa en la URL
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('error')) {
+    window.location.href = `/login.html?error=true&error_description=${encodeURIComponent(params.get('error_description') || 'Error desconocido')}`;
+    return false;
+  }
+
   // Si hay ?code= en la URL, Supabase necesita intercambiar el código primero.
   // esperarSesion() escucha onAuthStateChange y resuelve en cuanto el SDK termina.
-  const tieneCode = new URLSearchParams(window.location.search).has('code')
+  const tieneCode = params.has('code')
                  || window.location.hash.includes('access_token');
 
   let sesion;

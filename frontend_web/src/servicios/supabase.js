@@ -14,12 +14,16 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// Dominio canónico fijado para que Supabase siempre reciba el mismo redirect URL
+// independientemente de por qué alias de Vercel entre el usuario.
+const APP_ORIGIN = import.meta.env.VITE_APP_URL ?? window.location.origin;
+
 // ── AUTH ─────────────────────────────────────────────────
 
 export async function loginConGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${window.location.origin}/dojo.html` },
+    options: { redirectTo: `${APP_ORIGIN}/dojo.html` },
   });
   if (error) throw error;
 }
@@ -27,7 +31,7 @@ export async function loginConGoogle() {
 export async function loginConDiscord() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
-    options: { redirectTo: `${window.location.origin}/dojo.html` },
+    options: { redirectTo: `${APP_ORIGIN}/dojo.html` },
   });
   if (error) throw error;
 }
@@ -90,26 +94,52 @@ export async function garantizarPerfil(user) {
                     ?? user.email?.split('@')[0]
                     ?? 'Ninja';
 
+  // Intentar leer el perfil existente primero
+  const { data: existente } = await supabase
+    .from('perfiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (existente) {
+    // Perfil ya existe — actualizar updated_at y rellenar campos que puedan faltar
+    const patch = { updated_at: new Date().toISOString() };
+    if (!existente.nombre_jugador) patch.nombre_jugador = nombreGoogle;
+    if (!existente.email)          patch.email          = user.email;
+
+    const { data: actualizado } = await supabase
+      .from('perfiles')
+      .update(patch)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    return actualizado ?? existente;
+  }
+
+  // Perfil nuevo — insertar con todos los campos disponibles en el schema actual
+  const campos = {
+    id:           user.id,
+    xp_total:     0,
+    rango:        'Estudiante de la Hoja',
+    partidas_jugadas: 0,
+    updated_at:   new Date().toISOString(),
+  };
+  // Agregar campos opcionales solo si existen en el schema (no fallará si no existen)
+  try { campos.email          = user.email; }          catch {}
+  try { campos.nombre_jugador = nombreGoogle; }        catch {}
+  try { campos.avatar_url     = user.user_metadata?.avatar_url ?? null; } catch {}
+
   const { data, error } = await supabase
     .from('perfiles')
-    .upsert(
-      {
-        id:              user.id,
-        email:           user.email,
-        nombre_jugador:  nombreGoogle,
-        updated_at:      new Date().toISOString(),
-      },
-      {
-        onConflict:      'id',
-        ignoreDuplicates: false,   // actualiza updated_at en cada login
-      }
-    )
+    .insert(campos)
     .select()
     .single();
 
   if (error) {
-    console.warn('[Frutix] No se pudo garantizar el perfil:', error.message);
-    return null;
+    console.warn('[Frutix] No se pudo crear perfil:', error.message);
+    // Devolver objeto mínimo para que el juego funcione aunque falle la DB
+    return { id: user.id, nombre_jugador: nombreGoogle, rango: 'Estudiante de la Hoja', xp_total: 0 };
   }
   return data;
 }
