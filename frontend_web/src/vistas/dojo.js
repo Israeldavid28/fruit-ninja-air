@@ -599,31 +599,42 @@ async function resolverSesion() {
     return false;
   }
 
-  // Si hay ?code= en la URL, Supabase necesita intercambiar el código primero.
-  // esperarSesion() escucha onAuthStateChange y resuelve en cuanto el SDK termina.
-  const tieneCode = params.has('code')
-                 || window.location.hash.includes('access_token');
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    
+    if (!sessionData.session) {
+      console.warn("No se encontró sesión activa.");
+      return false;
+    }
 
-  let sesion;
-  if (tieneCode) {
-    sesion = await esperarSesion();
-    // Limpiar los parámetros OAuth de la URL sin recargar
-    history.replaceState(null, '', window.location.pathname);
-  } else {
-    sesion = await obtenerSesion();
+    // Limpiar URL si venimos de OAuth
+    if (params.has('code') || window.location.hash.includes('access_token')) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    
+    usuario = userData.user;
+    if (!usuario) {
+      console.warn("No se pudo obtener el usuario.");
+      return false;
+    }
+
+    const perfil = await garantizarPerfil(usuario);
+    nombreJugador = perfil?.nombre_jugador
+                  ?? usuario.user_metadata?.full_name
+                  ?? usuario.user_metadata?.name
+                  ?? usuario.email?.split('@')[0]
+                  ?? 'Ninja';
+    if (hudJugador) hudJugador.textContent = nombreJugador;
+    return true;
+  } catch (err) {
+    alert("Error crítico al resolver sesión: " + err.message);
+    console.error("Error en resolverSesion:", err);
+    return false;
   }
-
-  if (!sesion) return false;
-
-  usuario = await obtenerUsuario();
-  const perfil = await garantizarPerfil(usuario);
-  nombreJugador = perfil?.nombre_jugador
-                ?? usuario.user_metadata?.full_name
-                ?? usuario.user_metadata?.name
-                ?? usuario.email?.split('@')[0]
-                ?? 'Ninja';
-  if (hudJugador) hudJugador.textContent = nombreJugador;
-  return true;
 }
 
 function mostrarLobby(nombre) {
