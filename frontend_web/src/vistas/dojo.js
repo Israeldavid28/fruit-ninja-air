@@ -97,6 +97,7 @@ const toastContainer= document.getElementById('toast-container');
 let frutas = [];
 let mitades = [];          // mitades de fruta cortada (animación split)
 let estela = [];           // rastro del dedo
+let efectosVisuales = []; // partículas de corte
 
 // ── WEBSOCKET / POSICIÓN DEL DEDO ────────────────────────
 let ws = null;
