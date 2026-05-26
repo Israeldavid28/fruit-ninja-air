@@ -1,5 +1,5 @@
 /**
- * middleware.js — Comunicación con el API Python de Fruit Ninja Air
+ * middleware.js — Comunicación con el API Python de Frutix
  * El middleware valida puntajes con Anti-Cheat antes de guardarlos.
  */
 

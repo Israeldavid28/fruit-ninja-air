@@ -1,5 +1,5 @@
 /**
- * clasificacion.js — Leaderboard en tiempo real de Fruit Ninja Air
+ * clasificacion.js — Leaderboard en tiempo real de Frutix
  */
 import {
   obtenerRanking, obtenerRankingHoy, obtenerEstadisticas,

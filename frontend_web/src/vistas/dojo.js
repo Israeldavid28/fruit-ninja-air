@@ -1,5 +1,5 @@
 /**
- * dojo.js — Motor del juego Fruit Ninja Air
+ * dojo.js — Motor del juego Frutix
  * Canvas 2D + WebSocket MediaPipe + Lógica de frutas + Anti-Cheat
  */
 import { obtenerUsuario, obtenerSesion, cerrarSesion } from '../servicios/supabase.js';

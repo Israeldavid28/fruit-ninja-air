@@ -1,5 +1,5 @@
 /**
- * supabase.js — Cliente Supabase para Fruit Ninja Air
+ * supabase.js — Cliente Supabase para Frutix
  * Gestiona autenticación y acceso a datos.
  */
 import { createClient } from '@supabase/supabase-js';

@@ -1,5 +1,5 @@
 /**
- * inicio.js — Lógica de la landing page de Fruit Ninja Air
+ * inicio.js — Lógica de la landing page de Frutix
  */
 import { obtenerRanking, obtenerEstadisticas, suscribirRanking } from '../servicios/supabase.js';
 

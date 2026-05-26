@@ -1,5 +1,5 @@
 /**
- * login.js — Manejo de autenticación en Fruit Ninja Air
+ * login.js — Manejo de autenticación en Frutix
  */
 import { loginConGoogle, loginConDiscord, obtenerSesion } from '../servicios/supabase.js';
 
