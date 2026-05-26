@@ -42,6 +42,16 @@ export async function obtenerSesion() {
   return data.session;
 }
 
+/** Espera hasta que Supabase resuelva el estado de auth (útil después del callback OAuth) */
+export function esperarSesion() {
+  return new Promise((resolve) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      subscription.unsubscribe();
+      resolve(session);
+    });
+  });
+}
+
 export async function obtenerUsuario() {
   const { data } = await supabase.auth.getUser();
   return data.user;
@@ -66,6 +76,41 @@ export async function crearOActualizarPerfil(userId, datos) {
     .select()
     .single();
   if (error) throw error;
+  return data;
+}
+
+/**
+ * Garantiza que exista un perfil para el usuario autenticado.
+ * Se llama en cada login — es seguro ejecutarlo siempre gracias al ON CONFLICT DO UPDATE.
+ * Devuelve el perfil (nuevo o existente).
+ */
+export async function garantizarPerfil(user) {
+  const nombreGoogle = user.user_metadata?.full_name
+                    ?? user.user_metadata?.name
+                    ?? user.email?.split('@')[0]
+                    ?? 'Ninja';
+
+  const { data, error } = await supabase
+    .from('perfiles')
+    .upsert(
+      {
+        id:              user.id,
+        email:           user.email,
+        nombre_jugador:  nombreGoogle,
+        updated_at:      new Date().toISOString(),
+      },
+      {
+        onConflict:      'id',
+        ignoreDuplicates: false,   // actualiza updated_at en cada login
+      }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.warn('[Frutix] No se pudo garantizar el perfil:', error.message);
+    return null;
+  }
   return data;
 }
 

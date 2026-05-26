@@ -2,7 +2,7 @@
  * dojo.js — Motor del juego Frutix
  * Canvas 2D + WebSocket MediaPipe + Lógica de frutas + Anti-Cheat
  */
-import { obtenerUsuario, obtenerSesion, cerrarSesion } from '../servicios/supabase.js';
+import { obtenerUsuario, obtenerSesion, esperarSesion, cerrarSesion, garantizarPerfil } from '../servicios/supabase.js';
 import { procesarPartida } from '../servicios/middleware.js';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
@@ -578,37 +578,80 @@ document.getElementById('select-camara')?.addEventListener('change', (e) => {
   }
 });
 
-// ── AUTENTICACIÓN ─────────────────────────────────────────
-async function cargarUsuario() {
+// ── LOBBY ─────────────────────────────────────────────────
+const overlayLobby   = document.getElementById('overlay-lobby');
+const lobbyCargando  = document.getElementById('lobby-cargando');
+const lobbyNombre    = document.getElementById('lobby-nombre');
+const btnComenzar    = document.getElementById('btn-comenzar');
+
+async function resolverSesion() {
   modoInvitado = localStorage.getItem('fn_modo_invitado') === 'true';
 
   if (modoInvitado) {
     nombreJugador = localStorage.getItem('fn_invitado_nombre') ?? 'Invitado';
-    if (hudJugador) hudJugador.textContent = nombreJugador;
-    return;
+    return true;
   }
 
-  try {
-    const sesion = await obtenerSesion();
-    if (!sesion) {
-      window.location.href = '/login.html';
-      return;
-    }
-    usuario = await obtenerUsuario();
-    nombreJugador = usuario.user_metadata?.full_name
-                  ?? usuario.user_metadata?.name
-                  ?? usuario.email?.split('@')[0]
-                  ?? 'Ninja';
-    if (hudJugador) hudJugador.textContent = nombreJugador;
-  } catch {
-    window.location.href = '/login.html';
+  // Si hay ?code= en la URL, Supabase necesita intercambiar el código primero.
+  // esperarSesion() escucha onAuthStateChange y resuelve en cuanto el SDK termina.
+  const tieneCode = new URLSearchParams(window.location.search).has('code')
+                 || window.location.hash.includes('access_token');
+
+  let sesion;
+  if (tieneCode) {
+    sesion = await esperarSesion();
+    // Limpiar los parámetros OAuth de la URL sin recargar
+    history.replaceState(null, '', window.location.pathname);
+  } else {
+    sesion = await obtenerSesion();
   }
+
+  if (!sesion) return false;
+
+  usuario = await obtenerUsuario();
+  const perfil = await garantizarPerfil(usuario);
+  nombreJugador = perfil?.nombre_jugador
+                ?? usuario.user_metadata?.full_name
+                ?? usuario.user_metadata?.name
+                ?? usuario.email?.split('@')[0]
+                ?? 'Ninja';
+  if (hudJugador) hudJugador.textContent = nombreJugador;
+  return true;
+}
+
+function mostrarLobby(nombre) {
+  lobbyNombre.textContent = nombre;
+  lobbyCargando.style.display = 'none';
+  btnComenzar.style.display = 'block';
+}
+
+function ocultarLobby() {
+  overlayLobby.style.opacity = '0';
+  overlayLobby.style.transition = 'opacity 0.4s ease';
+  setTimeout(() => { overlayLobby.style.display = 'none'; }, 400);
 }
 
 // ── ARRANQUE ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  await cargarUsuario();
   conectarWS();
   iniciarCamara();
-  iniciarPartida();
+
+  let autenticado;
+  try {
+    autenticado = await resolverSesion();
+  } catch {
+    autenticado = false;
+  }
+
+  if (!autenticado) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  mostrarLobby(nombreJugador);
+
+  btnComenzar.addEventListener('click', () => {
+    ocultarLobby();
+    iniciarPartida();
+  });
 });

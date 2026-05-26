@@ -28,6 +28,10 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
+    CREATE POLICY "Usuarios pueden insertar su propio perfil" ON public.perfiles FOR INSERT WITH CHECK (auth.uid() = id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
     CREATE POLICY "Usuarios pueden actualizar su propio perfil" ON public.perfiles FOR UPDATE USING (auth.uid() = id);
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
