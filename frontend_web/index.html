@@ -1,266 +1,333 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fruit Ninja Air — Corta Frutas con tus Manos</title>
-  <meta name="description" content="El primer Fruit Ninja controlado por gestos de mano usando IA. Sin controles, sin límites. Solo tú y el aire." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍊</text></svg>" />
+  <meta name="description"
+    content="El primer Fruit Ninja controlado por gestos de mano usando IA. Sin controles, sin límites. Solo tú y el aire." />
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍊</text></svg>" />
   <link rel="stylesheet" href="/estilos/principal.css" />
 </head>
+
 <body>
 
-<!-- ── NAVBAR ──────────────────────────────────────────── -->
-<nav class="navbar" id="navbar">
-  <a class="navbar__logo" href="/index.html">
-    <span class="navbar__logo-icon">🍊</span>
-    <span class="navbar__logo-texto">Fruit Ninja <span>Air</span></span>
-  </a>
+  <!-- ── NAVBAR ──────────────────────────────────────────── -->
+  <nav class="navbar" id="navbar">
+    <a class="navbar__logo" href="/index.html">
+      <span class="navbar__logo-icon">🍊</span>
+      <span class="navbar__logo-texto">Fruit Ninja <span>Air</span></span>
+    </a>
 
-  <ul class="navbar__links">
-    <li><a href="#caracteristicas">Características</a></li>
-    <li><a href="#ranking">Ranking</a></li>
-    <li><a href="#como-jugar">Cómo Jugar</a></li>
-  </ul>
+    <ul class="navbar__links">
+      <li><a href="#caracteristicas">Características</a></li>
+      <li><a href="#ranking">Ranking</a></li>
+      <li><a href="#como-jugar">Cómo Jugar</a></li>
+    </ul>
 
-  <a href="/clasificacion.html" class="navbar__badge">
-    🏆 Clasificación
-  </a>
-</nav>
+    <a href="/clasificacion.html" class="navbar__badge">
+      🏆 Clasificación
+    </a>
+  </nav>
 
-<!-- ── HERO ────────────────────────────────────────────── -->
-<section class="fondo-hero" id="inicio" style="min-height: 100vh; padding-top: 60px; display: flex; align-items: center;">
-  <div class="contenedor" style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; padding-top: 60px; padding-bottom: 80px;">
+  <!-- ── HERO ────────────────────────────────────────────── -->
+  <section class="fondo-hero" id="inicio"
+    style="min-height: 100vh; padding-top: 60px; display: flex; align-items: center;">
+    <div class="contenedor"
+      style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; padding-top: 60px; padding-bottom: 80px;">
 
-    <!-- Columna izquierda: texto -->
-    <div style="display: flex; flex-direction: column; gap: 28px;">
+      <!-- Columna izquierda: texto -->
+      <div style="display: flex; flex-direction: column; gap: 28px;">
 
-      <!-- Badges superiores -->
-      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-        <div class="pill-en-vivo">
-          <span class="pill-en-vivo__punto"></span>
-          Sistema Activo · Expoferia 2026
+        <!-- Badges superiores -->
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+          <div class="pill-en-vivo">
+            <span class="pill-en-vivo__punto"></span>
+            Sistema Activo · Expoferia 2026
+          </div>
+          <div class="pill-version">
+            <span class="pill-version__dot"></span>
+            v1.0 · IA Local · MediaPipe
+          </div>
         </div>
-        <div class="pill-version">
+
+        <!-- Título principal -->
+        <div>
+          <h1 class="texto-titulo mayusculas"
+            style="font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900; line-height: 0.95; color: var(--color-fn-blanco); letter-spacing: -0.01em;">
+            CORTA.<br>
+            VUELA.<br>
+            <span class="texto-naranja animar-brillo">DOMINA.</span>
+          </h1>
+        </div>
+
+        <!-- Descripción -->
+        <p style="font-size: 1.05rem; color: var(--color-fn-claro); line-height: 1.7; max-width: 460px;">
+          El primer <strong style="color: white;">Fruit Ninja</strong> controlado por gestos de mano con <strong
+            style="color: var(--color-fn-naranja);">IA en tiempo real</strong>. Sin controles, sin botones. Solo levanta
+          tu mano y rebana frutas en el aire.
+        </p>
+
+        <!-- Badges de tecnología -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <span
+            style="background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.3); color: var(--color-fn-naranja); padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">🤚
+            Gestos con Mano</span>
+          <span
+            style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">🧠
+            MediaPipe AI</span>
+          <span
+            style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">⚡
+            Tiempo Real</span>
+        </div>
+
+        <!-- Botones CTA -->
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+          <a href="/login.html" class="btn btn-primario" id="btn-jugar" style="font-size: 1rem; padding: 16px 36px;">
+            ⚔️ Jugar Ahora
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14m-7-7 7 7-7 7" />
+            </svg>
+          </a>
+          <a href="/clasificacion.html" class="btn btn-secundario">
+            🏆 Ver Ranking
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Columna derecha: preview visual -->
+      <div style="display: flex; justify-content: center; align-items: center; position: relative;">
+        <!-- Frutas flotantes decorativas -->
+        <div style="position: relative; width: 100%; max-width: 400px; aspect-ratio: 1;">
+          <!-- Glow de fondo -->
+          <div
+            style="position: absolute; inset: 20%; border-radius: 50%; background: radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%); filter: blur(30px);">
+          </div>
+
+          <!-- Canvas de preview (frutas flotando) -->
+          <canvas id="canvas-preview"
+            style="width: 100%; height: 100%; border-radius: 20px; border: 1px solid rgba(249,115,22,0.2); background: rgba(0,0,0,0.3);"></canvas>
+
+          <!-- Badge de estado en vivo -->
+          <div
+            style="position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; background: rgba(6,6,15,0.85); border: 1px solid var(--color-fn-borde); font-size: 0.65rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.1em;">
+            <span
+              style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-fn-verde); box-shadow: 0 0 6px var(--color-fn-verde); animation: pulso 1.5s infinite;"></span>
+            Cámara Lista
+          </div>
+
+          <!-- Etiqueta de tecnología -->
+          <div
+            style="position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 99px; background: rgba(6,6,15,0.9); border: 1px solid var(--color-fn-borde); font-size: 0.65rem; font-weight: 700; color: var(--color-fn-claro); text-transform: uppercase; letter-spacing: 0.08em;">
+            🤚 Punto 8 · Dedo Índice · 30 FPS
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── ESTADÍSTICAS RÁPIDAS ─────────────────────────────── -->
+  <div
+    style="background: var(--color-fn-panel); border-top: 1px solid var(--color-fn-borde); border-bottom: 1px solid var(--color-fn-borde);">
+    <div class="contenedor" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;">
+      <div class="stat-item" style="padding: 24px; text-align: center; border-right: 1px solid var(--color-fn-borde);">
+        <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-jugadores">—</div>
+        <div
+          style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">
+          Jugadores</div>
+      </div>
+      <div class="stat-item" style="padding: 24px; text-align: center; border-right: 1px solid var(--color-fn-borde);">
+        <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-partidas">—</div>
+        <div
+          style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">
+          Partidas</div>
+      </div>
+      <div class="stat-item" style="padding: 24px; text-align: center;">
+        <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-mejor">—</div>
+        <div
+          style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">
+          Mejor Puntaje</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CARACTERÍSTICAS ──────────────────────────────────── -->
+  <section class="seccion" id="caracteristicas">
+    <div class="contenedor">
+
+      <div style="text-align: center; margin-bottom: 60px;">
+        <div class="pill-version" style="display: inline-flex; margin-bottom: 16px;">
           <span class="pill-version__dot"></span>
-          v1.0 · IA Local · MediaPipe
+          Tecnología
         </div>
-      </div>
-
-      <!-- Título principal -->
-      <div>
-        <h1 class="texto-titulo mayusculas" style="font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900; line-height: 0.95; color: var(--color-fn-blanco); letter-spacing: -0.01em;">
-          CORTA.<br>
-          VUELA.<br>
-          <span class="texto-naranja animar-brillo">DOMINA.</span>
-        </h1>
-      </div>
-
-      <!-- Descripción -->
-      <p style="font-size: 1.05rem; color: var(--color-fn-claro); line-height: 1.7; max-width: 460px;">
-        El primer <strong style="color: white;">Fruit Ninja</strong> controlado por gestos de mano con <strong style="color: var(--color-fn-naranja);">IA en tiempo real</strong>. Sin controles, sin botones. Solo levanta tu mano y rebana frutas en el aire.
-      </p>
-
-      <!-- Badges de tecnología -->
-      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-        <span style="background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.3); color: var(--color-fn-naranja); padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">🤚 Gestos con Mano</span>
-        <span style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">🧠 MediaPipe AI</span>
-        <span style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; padding: 5px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">⚡ Tiempo Real</span>
-      </div>
-
-      <!-- Botones CTA -->
-      <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
-        <a href="/login.html" class="btn btn-primario" id="btn-jugar" style="font-size: 1rem; padding: 16px 36px;">
-          ⚔️ Jugar Ahora
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
-        </a>
-        <a href="/clasificacion.html" class="btn btn-secundario">
-          🏆 Ver Ranking
-        </a>
-      </div>
-
-    </div>
-
-    <!-- Columna derecha: preview visual -->
-    <div style="display: flex; justify-content: center; align-items: center; position: relative;">
-      <!-- Frutas flotantes decorativas -->
-      <div style="position: relative; width: 100%; max-width: 400px; aspect-ratio: 1;">
-        <!-- Glow de fondo -->
-        <div style="position: absolute; inset: 20%; border-radius: 50%; background: radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%); filter: blur(30px);"></div>
-
-        <!-- Canvas de preview (frutas flotando) -->
-        <canvas id="canvas-preview"
-          style="width: 100%; height: 100%; border-radius: 20px; border: 1px solid rgba(249,115,22,0.2); background: rgba(0,0,0,0.3);"
-        ></canvas>
-
-        <!-- Badge de estado en vivo -->
-        <div style="position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; background: rgba(6,6,15,0.85); border: 1px solid var(--color-fn-borde); font-size: 0.65rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.1em;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-fn-verde); box-shadow: 0 0 6px var(--color-fn-verde); animation: pulso 1.5s infinite;"></span>
-          Cámara Lista
-        </div>
-
-        <!-- Etiqueta de tecnología -->
-        <div style="position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 99px; background: rgba(6,6,15,0.9); border: 1px solid var(--color-fn-borde); font-size: 0.65rem; font-weight: 700; color: var(--color-fn-claro); text-transform: uppercase; letter-spacing: 0.08em;">
-          🤚 Punto 8 · Dedo Índice · 30 FPS
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ── ESTADÍSTICAS RÁPIDAS ─────────────────────────────── -->
-<div style="background: var(--color-fn-panel); border-top: 1px solid var(--color-fn-borde); border-bottom: 1px solid var(--color-fn-borde);">
-  <div class="contenedor" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;">
-    <div class="stat-item" style="padding: 24px; text-align: center; border-right: 1px solid var(--color-fn-borde);">
-      <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-jugadores">—</div>
-      <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Jugadores</div>
-    </div>
-    <div class="stat-item" style="padding: 24px; text-align: center; border-right: 1px solid var(--color-fn-borde);">
-      <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-partidas">—</div>
-      <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Partidas</div>
-    </div>
-    <div class="stat-item" style="padding: 24px; text-align: center;">
-      <div class="texto-titulo texto-naranja" style="font-size: 2rem; font-weight: 900;" id="stat-mejor">—</div>
-      <div style="font-size: 0.72rem; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Mejor Puntaje</div>
-    </div>
-  </div>
-</div>
-
-<!-- ── CARACTERÍSTICAS ──────────────────────────────────── -->
-<section class="seccion" id="caracteristicas">
-  <div class="contenedor">
-
-    <div style="text-align: center; margin-bottom: 60px;">
-      <div class="pill-version" style="display: inline-flex; margin-bottom: 16px;">
-        <span class="pill-version__dot"></span>
-        Tecnología
-      </div>
-      <h2 class="texto-titulo mayusculas" style="font-size: 2.2rem; font-weight: 900; color: var(--color-fn-blanco); margin-bottom: 12px;">
-        ¿Cómo <span class="texto-naranja">Funciona?</span>
-      </h2>
-      <p style="color: var(--color-fn-tenue); max-width: 500px; margin: 0 auto; font-size: 0.95rem; line-height: 1.6;">
-        Tres capas de tecnología trabajando juntas para crear la experiencia de juego más inmersiva.
-      </p>
-    </div>
-
-    <div class="grid-features">
-      <div class="feature-card">
-        <span class="feature-card__icono">🤚</span>
-        <div class="feature-card__titulo">Detección de Mano</div>
-        <p class="feature-card__desc">MediaPipe rastrea 21 puntos de tu mano en tiempo real. El punto 8 (punta del dedo índice) se convierte en tu espada.</p>
-        <div style="margin-top: 14px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.08em;">• 30 FPS · Sin Latencia</div>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-card__icono">🍎</span>
-        <div class="feature-card__titulo">Frutas Físicas</div>
-        <p class="feature-card__desc">Las frutas caen con física real: gravedad, ángulos, velocidades únicas. Combos encadenados multiplican tu puntaje.</p>
-        <div style="margin-top: 14px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.08em;">• Combo x2 · x3 · x5</div>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-card__icono">📊</span>
-        <div class="feature-card__titulo">Ranking en Vivo</div>
-        <p class="feature-card__desc">Tu puntaje aparece en el leaderboard en segundos. WebSockets de Supabase actualizan la tabla sin recargar la página.</p>
-        <div style="margin-top: 14px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.08em;">• Realtime · PostgreSQL</div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ── CÓMO JUGAR ───────────────────────────────────────── -->
-<section class="seccion" id="como-jugar" style="background: var(--color-fn-panel); border-top: 1px solid var(--color-fn-borde);">
-  <div class="contenedor">
-    <div style="text-align: center; margin-bottom: 50px;">
-      <h2 class="texto-titulo mayusculas" style="font-size: 2rem; font-weight: 900; color: var(--color-fn-blanco);">
-        ¿Cómo <span class="texto-naranja">Jugar?</span>
-      </h2>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; text-align: center;">
-
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">🔑</div>
-        <div class="texto-titulo" style="font-size: 0.85rem; font-weight: 900; color: var(--color-fn-blanco); text-transform: uppercase; letter-spacing: 0.06em;">1 · Inicia Sesión</div>
-        <p style="font-size: 0.82rem; color: var(--color-fn-tenue); line-height: 1.6; max-width: 220px;">Accede con tu cuenta de Google. Tu progreso y puntajes quedan guardados automáticamente.</p>
-      </div>
-
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">📷</div>
-        <div class="texto-titulo" style="font-size: 0.85rem; font-weight: 900; color: var(--color-fn-blanco); text-transform: uppercase; letter-spacing: 0.06em;">2 · Activa la Cámara</div>
-        <p style="font-size: 0.82rem; color: var(--color-fn-tenue); line-height: 1.6; max-width: 220px;">Permite el acceso a la cámara. El sistema detecta tu mano automáticamente con IA.</p>
-      </div>
-
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">⚔️</div>
-        <div class="texto-titulo" style="font-size: 0.85rem; font-weight: 900; color: var(--color-fn-blanco); text-transform: uppercase; letter-spacing: 0.06em;">3 · ¡Rebana!</div>
-        <p style="font-size: 0.82rem; color: var(--color-fn-tenue); line-height: 1.6; max-width: 220px;">Mueve tu dedo índice sobre las frutas para cortarlas. Evita las bombas o game over.</p>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ── RANKING PREVIEW ──────────────────────────────────── -->
-<section class="seccion" id="ranking">
-  <div class="contenedor">
-
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
-      <div>
-        <h2 class="texto-titulo mayusculas" style="font-size: 1.8rem; font-weight: 900; color: var(--color-fn-blanco);">
-          🏆 <span class="texto-naranja">Ranking</span> en Vivo
+        <h2 class="texto-titulo mayusculas"
+          style="font-size: 2.2rem; font-weight: 900; color: var(--color-fn-blanco); margin-bottom: 12px;">
+          ¿Cómo <span class="texto-naranja">Funciona?</span>
         </h2>
-        <p style="font-size: 0.82rem; color: var(--color-fn-tenue); margin-top: 4px;">Actualización automática · Sin recargar</p>
+        <p
+          style="color: var(--color-fn-tenue); max-width: 500px; margin: 0 auto; font-size: 0.95rem; line-height: 1.6;">
+          Tres capas de tecnología trabajando juntas para crear la experiencia de juego más inmersiva.
+        </p>
       </div>
-      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-verde); text-transform: uppercase; letter-spacing: 0.08em;">
-        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-fn-verde); animation: pulso 1.5s infinite;"></span>
-        En Vivo
+
+      <div class="grid-features">
+        <div class="feature-card">
+          <span class="feature-card__icono">🤚</span>
+          <div class="feature-card__titulo">Detección de Mano</div>
+          <p class="feature-card__desc">MediaPipe rastrea 21 puntos de tu mano en tiempo real. El punto 8 (punta del
+            dedo índice) se convierte en tu espada.</p>
+          <div
+            style="margin-top: 14px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.08em;">
+            • 30 FPS · Sin Latencia</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-card__icono">🍎</span>
+          <div class="feature-card__titulo">Frutas Físicas</div>
+          <p class="feature-card__desc">Las frutas caen con física real: gravedad, ángulos, velocidades únicas. Combos
+            encadenados multiplican tu puntaje.</p>
+          <div
+            style="margin-top: 14px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.08em;">
+            • Combo x2 · x3 · x5</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-card__icono">📊</span>
+          <div class="feature-card__titulo">Ranking en Vivo</div>
+          <p class="feature-card__desc">Tu puntaje aparece en el leaderboard en segundos. WebSockets de Supabase
+            actualizan la tabla sin recargar la página.</p>
+          <div
+            style="margin-top: 14px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-naranja); text-transform: uppercase; letter-spacing: 0.08em;">
+            • Realtime · PostgreSQL</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── CÓMO JUGAR ───────────────────────────────────────── -->
+  <section class="seccion" id="como-jugar"
+    style="background: var(--color-fn-panel); border-top: 1px solid var(--color-fn-borde);">
+    <div class="contenedor">
+      <div style="text-align: center; margin-bottom: 50px;">
+        <h2 class="texto-titulo mayusculas" style="font-size: 2rem; font-weight: 900; color: var(--color-fn-blanco);">
+          ¿Cómo <span class="texto-naranja">Jugar?</span>
+        </h2>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; text-align: center;">
+
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+          <div
+            style="width: 64px; height: 64px; border-radius: 50%; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+            🔑</div>
+          <div class="texto-titulo"
+            style="font-size: 0.85rem; font-weight: 900; color: var(--color-fn-blanco); text-transform: uppercase; letter-spacing: 0.06em;">
+            1 · Inicia Sesión</div>
+          <p style="font-size: 0.82rem; color: var(--color-fn-tenue); line-height: 1.6; max-width: 220px;">Accede con tu
+            cuenta de Google. Tu progreso y puntajes quedan guardados automáticamente.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+          <div
+            style="width: 64px; height: 64px; border-radius: 50%; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+            📷</div>
+          <div class="texto-titulo"
+            style="font-size: 0.85rem; font-weight: 900; color: var(--color-fn-blanco); text-transform: uppercase; letter-spacing: 0.06em;">
+            2 · Activa la Cámara</div>
+          <p style="font-size: 0.82rem; color: var(--color-fn-tenue); line-height: 1.6; max-width: 220px;">Permite el
+            acceso a la cámara. El sistema detecta tu mano automáticamente con IA.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+          <div
+            style="width: 64px; height: 64px; border-radius: 50%; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+            ⚔️</div>
+          <div class="texto-titulo"
+            style="font-size: 0.85rem; font-weight: 900; color: var(--color-fn-blanco); text-transform: uppercase; letter-spacing: 0.06em;">
+            3 · ¡Rebana!</div>
+          <p style="font-size: 0.82rem; color: var(--color-fn-tenue); line-height: 1.6; max-width: 220px;">Mueve tu dedo
+            índice sobre las frutas para cortarlas. Evita las bombas o game over.</p>
+        </div>
+
       </div>
     </div>
+  </section>
 
-    <div class="tarjeta" style="overflow: hidden;">
-      <table class="tabla-ranking">
-        <thead>
-          <tr>
-            <th style="width: 60px;">Rank</th>
-            <th>Ninja</th>
-            <th>Puntos</th>
-            <th>Combo</th>
-            <th>Podio</th>
-          </tr>
-        </thead>
-        <tbody id="ranking-body">
-          <!-- Se llena con JS -->
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 32px; color: var(--color-fn-tenue); font-size: 0.85rem;">
-              Cargando ranking...
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- ── RANKING PREVIEW ──────────────────────────────────── -->
+  <section class="seccion" id="ranking">
+    <div class="contenedor">
+
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h2 class="texto-titulo mayusculas"
+            style="font-size: 1.8rem; font-weight: 900; color: var(--color-fn-blanco);">
+            🏆 <span class="texto-naranja">Ranking</span> en Vivo
+          </h2>
+          <p style="font-size: 0.82rem; color: var(--color-fn-tenue); margin-top: 4px;">Actualización automática · Sin
+            recargar</p>
+        </div>
+        <div
+          style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; color: var(--color-fn-verde); text-transform: uppercase; letter-spacing: 0.08em;">
+          <span
+            style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-fn-verde); animation: pulso 1.5s infinite;"></span>
+          En Vivo
+        </div>
+      </div>
+
+      <div class="tarjeta" style="overflow: hidden;">
+        <table class="tabla-ranking">
+          <thead>
+            <tr>
+              <th style="width: 60px;">Rank</th>
+              <th>Ninja</th>
+              <th>Puntos</th>
+              <th>Combo</th>
+              <th>Podio</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-body">
+            <!-- Se llena con JS -->
+            <tr>
+              <td colspan="5"
+                style="text-align: center; padding: 32px; color: var(--color-fn-tenue); font-size: 0.85rem;">
+                Cargando ranking...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="/clasificacion.html" class="btn btn-secundario">
+          Ver Clasificación Completa →
+        </a>
+      </div>
+
     </div>
+  </section>
 
-    <div style="text-align: center; margin-top: 24px;">
-      <a href="/clasificacion.html" class="btn btn-secundario">
-        Ver Clasificación Completa →
-      </a>
+  <!-- ── FOOTER ───────────────────────────────────────────── -->
+  <footer style="border-top: 1px solid var(--color-fn-borde); padding: 32px 0; background: var(--color-fn-panel);">
+    <div class="contenedor"
+      style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.2rem;">🍊</span>
+        <span class="texto-titulo"
+          style="font-size: 0.8rem; font-weight: 900; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.08em;">Fruit
+          Ninja Air · Expoferia 2026</span>
+      </div>
+      <p style="font-size: 0.75rem; color: var(--color-fn-tenue);">Proyecto académico · MediaPipe + FastAPI + Supabase
+      </p>
     </div>
+  </footer>
 
-  </div>
-</section>
-
-<!-- ── FOOTER ───────────────────────────────────────────── -->
-<footer style="border-top: 1px solid var(--color-fn-borde); padding: 32px 0; background: var(--color-fn-panel);">
-  <div class="contenedor" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 1.2rem;">🍊</span>
-      <span class="texto-titulo" style="font-size: 0.8rem; font-weight: 900; color: var(--color-fn-tenue); text-transform: uppercase; letter-spacing: 0.08em;">Fruit Ninja Air · Expoferia 2026</span>
-    </div>
-    <p style="font-size: 0.75rem; color: var(--color-fn-tenue);">Proyecto académico · MediaPipe + FastAPI + Supabase</p>
-  </div>
-</footer>
-
-<script type="module" src="/src/vistas/inicio.js"></script>
+  <script type="module" src="/src/vistas/inicio.js"></script>
 </body>
+
 </html>
