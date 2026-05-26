@@ -584,6 +584,13 @@ const lobbyCargando  = document.getElementById('lobby-cargando');
 const lobbyNombre    = document.getElementById('lobby-nombre');
 const btnComenzar    = document.getElementById('btn-comenzar');
 
+/**
+ * Resuelve la sesión del usuario.
+ * - Modo invitado: lee localStorage.
+ * - OAuth (viene de Google con ?code=): espera el evento SIGNED_IN del SDK
+ *   antes de intentar leer la sesión, para evitar la condición de carrera PKCE.
+ * - Sesión existente: lee directamente con getSession().
+ */
 async function resolverSesion() {
   modoInvitado = localStorage.getItem('fn_modo_invitado') === 'true';
 
@@ -592,72 +599,82 @@ async function resolverSesion() {
     return true;
   }
 
-  // Si hay error de OAuth, Supabase lo pasa en la URL
   const params = new URLSearchParams(window.location.search);
+
+  // Redirigir errores OAuth al login con mensaje
   if (params.has('error')) {
-    window.location.href = `/login.html?error=true&error_description=${encodeURIComponent(params.get('error_description') || 'Error desconocido')}`;
+    const desc = encodeURIComponent(params.get('error_description') || 'Error desconocido');
+    window.location.href = `/login.html?error=true&error_description=${desc}`;
     return false;
   }
 
-  try {
-    const tieneCode = params.has('code') || window.location.hash.includes('access_token');
+  // Si viene con ?code=, Supabase todavía está canjeando el código PKCE.
+  // Usamos onAuthStateChange para esperar el evento SIGNED_IN antes de continuar.
+  const tieneCode = params.has('code') || window.location.hash.includes('access_token');
 
-    if (tieneCode) {
-      // Si venimos de Google, esperar a que Supabase termine de canjear el código
+  if (tieneCode) {
+    try {
       await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('El inicio de sesión tardó demasiado.')), 6000);
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_IN' || session) {
-            clearTimeout(timeout);
-            subscription.unsubscribe();
+        const TIMEOUT_MS = 8000;
+        const tid = setTimeout(() => {
+          sub.unsubscribe();
+          reject(new Error('Tiempo de espera agotado al iniciar sesión con Google.'));
+        }, TIMEOUT_MS);
+
+        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            clearTimeout(tid);
+            sub.unsubscribe();
             resolve(session);
           }
         });
       });
-      // Limpiamos la URL para no volver a procesar el código
-      history.replaceState(null, '', window.location.pathname);
-    }
-
-    // Ya sea que acabamos de canjear el código o ya teníamos sesión, obtenemos la sesión actual
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) throw sessionError;
-    
-    if (!sessionData.session) {
-      console.warn("No se encontró sesión activa.");
+    } catch (err) {
+      console.error('[Dojo] Error OAuth:', err.message);
+      window.location.href = `/login.html?error=true&error_description=${encodeURIComponent(err.message)}`;
       return false;
     }
+    // Limpiar los parámetros de la URL para que una recarga no re-procese el código
+    history.replaceState(null, '', window.location.pathname);
+  }
 
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) throw userError;
-    
-    usuario = userData.user;
-    if (!usuario) {
-      console.warn("No se pudo obtener el usuario.");
-      return false;
-    }
-
-    const perfil = await garantizarPerfil(usuario);
-    nombreJugador = perfil?.nombre_jugador
-                  ?? usuario.user_metadata?.full_name
-                  ?? usuario.user_metadata?.name
-                  ?? usuario.email?.split('@')[0]
-                  ?? 'Ninja';
-    if (hudJugador) hudJugador.textContent = nombreJugador;
-    return true;
-  } catch (err) {
-    alert("Error al iniciar sesión: " + err.message);
-    console.error("Error en resolverSesion:", err);
+  // Leer sesión ya establecida
+  const { data: { session }, error: sesionError } = await supabase.auth.getSession();
+  if (sesionError) {
+    console.error('[Dojo] Error getSession:', sesionError.message);
     return false;
   }
+  if (!session) {
+    console.warn('[Dojo] No hay sesión activa.');
+    return false;
+  }
+
+  // Obtener datos del usuario y garantizar su perfil en la BD
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error('[Dojo] No se pudo obtener usuario:', userError?.message);
+    return false;
+  }
+
+  usuario = user;
+  const perfil = await garantizarPerfil(usuario);
+  nombreJugador = perfil?.nombre_jugador
+                ?? usuario.user_metadata?.full_name
+                ?? usuario.user_metadata?.name
+                ?? usuario.email?.split('@')[0]
+                ?? 'Ninja';
+  if (hudJugador) hudJugador.textContent = nombreJugador;
+  return true;
 }
 
 function mostrarLobby(nombre) {
-  lobbyNombre.textContent = nombre;
-  lobbyCargando.style.display = 'none';
-  btnComenzar.style.display = 'block';
+  if (lobbyNombre) lobbyNombre.textContent = nombre;
+  if (lobbyCargando) lobbyCargando.style.display = 'none';
+  if (btnComenzar) btnComenzar.style.display = 'block';
 }
 
 function ocultarLobby() {
+  if (!overlayLobby) return;
   overlayLobby.style.opacity = '0';
   overlayLobby.style.transition = 'opacity 0.4s ease';
   setTimeout(() => { overlayLobby.style.display = 'none'; }, 400);
@@ -668,10 +685,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   conectarWS();
   iniciarCamara();
 
-  let autenticado;
+  let autenticado = false;
   try {
     autenticado = await resolverSesion();
-  } catch {
+  } catch (err) {
+    console.error('[Dojo] Error inesperado en arranque:', err);
     autenticado = false;
   }
 
@@ -682,7 +700,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   mostrarLobby(nombreJugador);
 
-  btnComenzar.addEventListener('click', () => {
+  btnComenzar?.addEventListener('click', () => {
     ocultarLobby();
     iniciarPartida();
   });
