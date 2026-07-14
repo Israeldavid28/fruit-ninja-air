@@ -4,6 +4,7 @@
  */
 import { obtenerUsuario, obtenerSesion, esperarSesion, cerrarSesion, garantizarPerfil } from '../servicios/supabase.js';
 import { procesarPartida } from '../servicios/middleware.js';
+import { silenciarMusica } from '../servicios/musica.js';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
 // ── AUDIO (Web Audio API — sin archivos externos) ─────────
@@ -889,6 +890,9 @@ function gameLoop(timestamp) {
 
 // ── INICIAR PARTIDA ───────────────────────────────────────
 function iniciarPartida() {
+  // Silenciar la música de fondo al comenzar la partida
+  silenciarMusica();
+
   estado.activo          = true;
   estado.pausado         = false;
   estado.puntaje         = 0;

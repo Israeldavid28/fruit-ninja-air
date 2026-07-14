@@ -5,6 +5,7 @@ import {
   obtenerRanking, obtenerRankingHoy, obtenerEstadisticas,
   suscribirRanking, obtenerUsuario, obtenerSesion
 } from '../servicios/supabase.js';
+import '../servicios/musica.js';
 
 let tabActual   = 'puntos';
 let periodoActual = 'todo';

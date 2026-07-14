@@ -2,6 +2,7 @@
  * inicio.js — Lógica de la landing page de Frutix
  */
 import { obtenerRanking, obtenerEstadisticas, suscribirRanking } from '../servicios/supabase.js';
+import '../servicios/musica.js';
 
 // ── CANVAS PREVIEW (Frutas animadas) ─────────────────────
 function iniciarCanvasPreview() {

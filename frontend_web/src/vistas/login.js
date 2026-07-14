@@ -2,6 +2,7 @@
  * login.js — Manejo de autenticación en Frutix
  */
 import { loginConGoogle, loginConDiscord, obtenerSesion } from '../servicios/supabase.js';
+import '../servicios/musica.js';
 
 const btnGoogle   = document.getElementById('btn-google');
 const btnDiscord  = document.getElementById('btn-discord');
