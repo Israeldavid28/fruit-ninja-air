@@ -86,6 +86,64 @@ async def obtener_perfil(user_id: str):
     perfil["rango_info"] = rango
     return perfil
 
+@router.post("/crear-perfil")
+async def crear_perfil(datos: dict):
+    """
+    Garantiza que un perfil exista para el usuario autenticado.
+    Se llama después del login de OAuth.
+
+    Recibe: { user_id, email, nombre_jugador }
+    """
+    if not supabase_admin:
+        raise HTTPException(status_code=503, detail="Backend no configurado para crear perfiles")
+
+    user_id = datos.get("user_id")
+    email = datos.get("email")
+    nombre_jugador = datos.get("nombre_jugador", "Ninja")
+
+    if not user_id or not email:
+        raise HTTPException(status_code=400, detail="user_id y email son requeridos")
+
+    # 1. Verificar si el perfil ya existe
+    res_existente = supabase_admin.table("perfiles").select("*").eq("id", user_id).execute()
+
+    if res_existente.data and len(res_existente.data) > 0:
+        # Perfil ya existe — actualizar updated_at
+        supabase_admin.table("perfiles").update({
+            "updated_at": "now()"
+        }).eq("id", user_id).execute()
+        return {
+            "status": "existing",
+            "message": "Perfil ya existía",
+            "perfil": res_existente.data[0]
+        }
+
+    # 2. Crear nuevo perfil
+    try:
+        res = supabase_admin.table("perfiles").insert({
+            "id": user_id,
+            "email": email,
+            "nombre_jugador": nombre_jugador,
+            "xp_total": 0,
+            "rango": "Estudiante de la Hoja",
+            "partidas_jugadas": 0,
+        }).execute()
+
+        if res.data and len(res.data) > 0:
+            return {
+                "status": "created",
+                "message": "Perfil creado exitosamente",
+                "perfil": res.data[0]
+            }
+        else:
+            raise Exception("No se devolvieron datos después de crear el perfil")
+    except Exception as e:
+        print(f"[API] Error al crear perfil: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error al crear perfil: {str(e)}"
+        )
+
 @router.get("/leaderboard")
 async def obtener_leaderboard(limite: int = 10):
     """Devuelve el top de jugadores por mejor puntaje en una partida."""

@@ -84,17 +84,66 @@ export async function crearOActualizarPerfil(userId, datos) {
 }
 
 /**
+ * Sincroniza el perfil del usuario con el backend.
+ * Esto asegura que el perfil exista en la BD y tenga todos los campos correctos.
+ * Se llama después del login OAuth.
+ */
+async function sincronizarPerfilConBackend(user) {
+  try {
+    console.log('[Supabase] Sincronizando perfil con backend:', user.email);
+    const res = await fetch('/api/usuarios/crear-perfil', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: user.id,
+        email: user.email,
+        nombre_jugador: user.user_metadata?.full_name
+                     ?? user.user_metadata?.name
+                     ?? user.email?.split('@')[0]
+                     ?? 'Ninja'
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail ?? `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log('[Supabase] Perfil sincronizado:', data.status, data.message);
+    return data.perfil;
+  } catch (err) {
+    console.warn('[Supabase] Error al sincronizar perfil con backend:', err.message);
+    // No lanzar error — continuamos con el fallback local
+    return null;
+  }
+}
+
+/**
  * Garantiza que exista un perfil para el usuario autenticado.
- * Se llama en cada login — es seguro ejecutarlo siempre gracias al ON CONFLICT DO UPDATE.
+ * Se llama en cada login — es seguro ejecutarlo siempre.
+ * 1. Intenta sincronizar con el backend
+ * 2. Fallback: intenta leer/crear localmente vía Supabase
  * Devuelve el perfil (nuevo o existente).
  */
 export async function garantizarPerfil(user) {
+  if (!user?.id || !user?.email) {
+    console.error('[Supabase] Usuario inválido para garantizarPerfil:', user);
+    throw new Error('Usuario no autenticado correctamente');
+  }
+
   const nombreGoogle = user.user_metadata?.full_name
                     ?? user.user_metadata?.name
                     ?? user.email?.split('@')[0]
                     ?? 'Ninja';
 
-  // Intentar leer el perfil existente primero
+  // 1️⃣ Intentar sincronizar con el backend (más confiable)
+  const perfilBackend = await sincronizarPerfilConBackend(user);
+  if (perfilBackend) {
+    return perfilBackend;
+  }
+
+  // 2️⃣ FALLBACK: Leer el perfil existente desde Supabase
   const { data: existente } = await supabase
     .from('perfiles')
     .select('*')
@@ -102,6 +151,7 @@ export async function garantizarPerfil(user) {
     .single();
 
   if (existente) {
+    console.log('[Supabase] Perfil existente encontrado:', existente.id);
     // Perfil ya existe — actualizar updated_at y rellenar campos que puedan faltar
     const patch = { updated_at: new Date().toISOString() };
     if (!existente.nombre_jugador) patch.nombre_jugador = nombreGoogle;
@@ -117,31 +167,43 @@ export async function garantizarPerfil(user) {
     return actualizado ?? existente;
   }
 
-  // Perfil nuevo — insertar con todos los campos disponibles en el schema actual
-  const campos = {
-    id:           user.id,
-    xp_total:     0,
-    rango:        'Estudiante de la Hoja',
-    partidas_jugadas: 0,
-    updated_at:   new Date().toISOString(),
-  };
-  // Agregar campos opcionales solo si existen en el schema (no fallará si no existen)
-  try { campos.email          = user.email; }          catch {}
-  try { campos.nombre_jugador = nombreGoogle; }        catch {}
-  try { campos.avatar_url     = user.user_metadata?.avatar_url ?? null; } catch {}
+  // 3️⃣ FALLBACK: Crear el perfil localmente vía Supabase
+  console.log('[Supabase] Creando perfil nuevo para:', user.email);
 
-  const { data, error } = await supabase
+  const nuevosPerfil = {
+    id:                user.id,
+    email:             user.email,
+    nombre_jugador:    nombreGoogle,
+    xp_total:          0,
+    rango:             'Estudiante de la Hoja',
+    partidas_jugadas:  0,
+    updated_at:        new Date().toISOString(),
+  };
+
+  const { data: perfilCreado, error } = await supabase
     .from('perfiles')
-    .insert(campos)
+    .insert([nuevosPerfil])
     .select()
     .single();
 
   if (error) {
-    console.warn('[Frutix] No se pudo crear perfil:', error.message);
-    // Devolver objeto mínimo para que el juego funcione aunque falle la DB
-    return { id: user.id, nombre_jugador: nombreGoogle, rango: 'Estudiante de la Hoja', xp_total: 0 };
+    console.error('[Supabase] Error al crear perfil:', error.message, error.details);
+
+    // ÚLTIMO FALLBACK: Devolver un perfil mínimo para que el juego funcione
+    const perfilFallback = {
+      id: user.id,
+      email: user.email,
+      nombre_jugador: nombreGoogle,
+      rango: 'Estudiante de la Hoja',
+      xp_total: 0,
+      partidas_jugadas: 0,
+    };
+    console.warn('[Supabase] Usando perfil fallback (offline mode):', perfilFallback);
+    return perfilFallback;
   }
-  return data;
+
+  console.log('[Supabase] Perfil creado exitosamente:', perfilCreado?.id);
+  return perfilCreado;
 }
 
 // ── RANKING ──────────────────────────────────────────────
