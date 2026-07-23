@@ -1,11 +1,10 @@
 /**
  * login.js — Manejo de autenticación en Frutix
  */
-import { loginConGoogle, loginConDiscord, obtenerSesion } from '../servicios/supabase.js';
+import { loginConGoogle, obtenerSesion } from '../servicios/supabase.js';
 import '../servicios/musica.js';
 
 const btnGoogle   = document.getElementById('btn-google');
-const btnDiscord  = document.getElementById('btn-discord');
 const btnInvitado = document.getElementById('btn-invitado');
 const msgError    = document.getElementById('mensaje-error');
 const elCargando  = document.getElementById('cargando');
@@ -19,7 +18,6 @@ function mostrarError(msg) {
 function mostrarCargando(si) {
   if (elCargando)  elCargando.style.display  = si ? 'block' : 'none';
   if (btnGoogle)   btnGoogle.disabled  = si;
-  if (btnDiscord)  btnDiscord.disabled = si;
 }
 
 // Si ya hay sesión activa → ir al dojo
@@ -45,18 +43,6 @@ btnGoogle?.addEventListener('click', async () => {
   } catch (err) {
     mostrarCargando(false);
     mostrarError(`Error al iniciar con Google: ${err.message}`);
-  }
-});
-
-// Discord
-btnDiscord?.addEventListener('click', async () => {
-  msgError.style.display = 'none';
-  try {
-    mostrarCargando(true);
-    await loginConDiscord();
-  } catch (err) {
-    mostrarCargando(false);
-    mostrarError(`Error al iniciar con Discord: ${err.message}`);
   }
 });
 

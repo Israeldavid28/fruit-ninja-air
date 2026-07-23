@@ -14,23 +14,16 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Dominio canónico fijado para que Supabase siempre reciba el mismo redirect URL
-// independientemente de por qué alias de Vercel entre el usuario.
-const APP_ORIGIN = import.meta.env.VITE_APP_URL ?? window.location.origin;
+// El origen SIEMPRE se toma del navegador actual (window.location.origin).
+// Así el redirect funciona automáticamente en localhost (dev) y en el dominio
+// de Vercel (producción) sin depender de una variable hardcodeada en el build.
+const APP_ORIGIN = window.location.origin;
 
 // ── AUTH ─────────────────────────────────────────────────
 
 export async function loginConGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${APP_ORIGIN}/dojo.html` },
-  });
-  if (error) throw error;
-}
-
-export async function loginConDiscord() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'discord',
     options: { redirectTo: `${APP_ORIGIN}/dojo.html` },
   });
   if (error) throw error;
