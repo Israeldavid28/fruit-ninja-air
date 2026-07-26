@@ -132,6 +132,20 @@ const IMGS = {};
   IMGS[f.id] = img;
 });
 
+// ── MODOS DE JUEGO ───────────────────────────────────────
+// clasico: 3 vidas, sin reloj; dejar caer una fruta resta 1 vida; bomba = fin.
+// arcade : 60s, sin vidas; la bomba resta puntos (no mata).
+// zen    : 90s, sin bombas ni castigos, totalmente libre.
+const VIDAS_INICIALES   = 3;    // ❤️ oportunidades en Clásico
+const PENALIZACION_BOMBA = 20;  // puntos que resta una bomba en Arcade
+const DURACION_ARCADE   = 60;   // segundos
+const DURACION_ZEN      = 90;   // segundos
+
+const modoTieneVidas  = (m) => m === 'clasico';
+const modoTieneReloj  = (m) => m === 'arcade' || m === 'zen';
+const modoTieneBombas = (m) => m !== 'zen';
+const duracionModo    = (m) => (m === 'zen' ? DURACION_ZEN : DURACION_ARCADE);
+
 // ── ESTADO DEL JUEGO ─────────────────────────────────────
 let estado = {
   activo:     false,
@@ -140,8 +154,10 @@ let estado = {
   combo:      0,
   comboMax:   0,
   frutasCorte: 0,
+  vidas:      VIDAS_INICIALES,
   tiempoRestante: DURACION,
-  modo:       'normal',   // 'normal' | 'infinito'
+  tiempoInicio: 0,        // performance.now() al empezar (para la duración real)
+  modo:       'clasico',  // 'clasico' | 'arcade' | 'zen'
   efectos:    true,
   sonido:     true,
   sensibilidad: 0.7,
@@ -170,6 +186,7 @@ const hudJugador    = document.getElementById('hud-jugador');
 const hudTiempo     = document.getElementById('hud-tiempo');
 const hudPuntaje    = document.getElementById('hud-puntaje');
 const hudCombo      = document.getElementById('hud-combo');
+const hudVidas      = document.getElementById('hud-vidas');
 const comboNum      = document.getElementById('combo-num');
 const finPanel      = document.getElementById('fin-partida');
 const finPuntaje    = document.getElementById('fin-puntaje');
@@ -376,7 +393,7 @@ redimensionar();
 // ── SPAWN DE FRUTAS ──────────────────────────────────────
 function spawnFruta() {
   const r = Math.random();
-  const esBomba   = r < 0.08;
+  const esBomba   = modoTieneBombas(estado.modo) && r < 0.08;
   const esPowerup = !esBomba && r < 0.14;
 
   let tipo = null;
@@ -397,7 +414,7 @@ function spawnFruta() {
     imgObj = IMGS[def.id];
   }
 
-  const velBase = powerups.hielo ? 0.004 : 0.008;
+  const velBase = 0.008;
   frutas.push({
     id:          Math.random(),
     emoji,
@@ -441,7 +458,17 @@ function verificarColisiones() {
           crearParticulas(fx, fy, '💥');
           return;
         }
-        terminarPartida(true);
+        crearParticulas(fx, fy, '💥');
+        if (estado.modo === 'arcade') {
+          // Arcade: la bomba resta puntos, no mata
+          estado.puntaje = Math.max(0, estado.puntaje - PENALIZACION_BOMBA);
+          estado.combo   = 0;
+          mostrarToast(`💣 ¡Bomba! −${PENALIZACION_BOMBA} puntos`, 'naranja');
+          actualizarHUD();
+        } else {
+          // Clásico: fin inmediato, sin importar las vidas restantes
+          terminarPartida(true);
+        }
         return;
       }
 
@@ -557,10 +584,17 @@ function activarPowerup(tipo) {
   const def = POWERUP_DEFS[tipo];
   if (!def) return;
 
-  // Tiempo extra: efecto instantáneo, sin duración
+  // Reloj: en modos con tiempo suma +10s; en Clásico (sin reloj) recupera 1 vida.
   if (tipo === 'reloj') {
-    estado.tiempoRestante = Math.min(estado.tiempoRestante + 10, estado.modo === 'normal' ? DURACION + 20 : Infinity);
-    mostrarToast(`⏰ +10 segundos`, 'verde');
+    if (modoTieneReloj(estado.modo)) {
+      estado.tiempoRestante = Math.min(estado.tiempoRestante + 10, duracionModo(estado.modo) + 20);
+      mostrarToast(`⏰ +10 segundos`, 'verde');
+    } else if (estado.vidas < VIDAS_INICIALES) {
+      estado.vidas++;
+      mostrarToast(`❤️ +1 vida`, 'verde');
+    } else {
+      mostrarToast(`❤️ ¡Vidas al máximo!`, 'verde');
+    }
     actualizarHUD();
     return;
   }
@@ -586,12 +620,10 @@ function activarPowerup(tipo) {
     return;
   }
 
-  // Hielo: frutas lentas por 4s
+  // Hielo: cámara lenta durante 4s (lo aplica la escala de tiempo del loop)
   if (tipo === 'hielo') {
     powerups.hielo = true;
-    mostrarToast('❄️ Frutas congeladas!', 'azul');
-    // Ralentizar frutas ya en vuelo
-    frutas.forEach(f => { f.vy *= 0.4; f.vx *= 0.4; });
+    mostrarToast('❄️ ¡Tiempo ralentizado!', 'azul');
     clearTimeout(powerups.timers.hielo);
     powerups.timers.hielo = setTimeout(() => {
       powerups.hielo = false;
@@ -742,7 +774,34 @@ function actualizarPasoTutorial() {
 // ── HUD ──────────────────────────────────────────────────
 function actualizarHUD() {
   if (hudPuntaje) hudPuntaje.textContent = estado.puntaje.toLocaleString();
-  if (hudTiempo)  hudTiempo.textContent  = Math.max(0, Math.ceil(estado.tiempoRestante));
+  if (hudTiempo) {
+    hudTiempo.textContent = modoTieneReloj(estado.modo)
+      ? Math.max(0, Math.ceil(estado.tiempoRestante))
+      : '∞';
+  }
+  renderizarVidas();
+}
+
+// Dibuja las oportunidades restantes como corazones (llenos + vacíos).
+// Solo en Clásico; en Arcade/Zen no hay vidas, así que se oculta.
+function renderizarVidas() {
+  if (!hudVidas) return;
+  if (!modoTieneVidas(estado.modo)) { hudVidas.textContent = ''; return; }
+  const llenos = Math.max(0, estado.vidas);
+  const vacios = Math.max(0, VIDAS_INICIALES - llenos);
+  hudVidas.textContent = '❤️'.repeat(llenos) + '🤍'.repeat(vacios);
+}
+
+// Pierde una vida (Clásico) al dejar caer una fruta sin cortar.
+function perderVida() {
+  if (estado.vidas <= 0) return;
+  estado.vidas--;
+  actualizarHUD();
+  if (estado.vidas <= 0) {
+    terminarPartida(false);   // fin por vidas agotadas
+  } else {
+    mostrarToast(`💔 ¡Fruta perdida! Te quedan ${estado.vidas} ❤️`, 'naranja');
+  }
 }
 
 // ── TIMER DE PARTIDA ─────────────────────────────────────
@@ -757,7 +816,7 @@ function tickTimer(timestamp) {
   const delta = (timestamp - ultimoTick) / 1000;
   ultimoTick = timestamp;
 
-  if (estado.modo === 'normal') {
+  if (modoTieneReloj(estado.modo)) {
     estado.tiempoRestante -= delta;
     if (estado.tiempoRestante <= 0) {
       estado.tiempoRestante = 0;
@@ -796,14 +855,22 @@ function gameLoop(timestamp) {
     // Spawn aleatorio
     if (Math.random() < 0.018) spawnFruta();
 
-    // Actualizar frutas
+    // Actualizar frutas (con cámara lenta si el hielo está activo)
+    const escalaTiempo = powerups.hielo ? 0.4 : 1;
     frutas.forEach(f => {
       if (!f.viva) return;
-      f.x  += f.vx;
-      f.y  += f.vy;
-      f.vy += f.ay;
-      f.rot += f.rotVel;
+      f.x   += f.vx * escalaTiempo;
+      f.y   += f.vy * escalaTiempo;
+      f.vy  += f.ay * escalaTiempo;
+      f.rot += f.rotVel * escalaTiempo;
     });
+
+    // Clásico: cada fruta normal que cae sin cortar resta una vida
+    if (modoTieneVidas(estado.modo)) {
+      frutas.forEach(f => {
+        if (f.viva && f.y >= 1.3 && !f.esBomba && !f.esPowerup) perderVida();
+      });
+    }
 
     // Limpiar frutas fuera del canvas
     frutas = frutas.filter(f => f.viva && f.y < 1.3);
@@ -950,7 +1017,9 @@ function iniciarPartida() {
   estado.combo           = 0;
   estado.comboMax        = 0;
   estado.frutasCorte     = 0;
-  estado.tiempoRestante  = DURACION;
+  estado.vidas           = VIDAS_INICIALES;
+  estado.tiempoInicio    = performance.now();
+  estado.tiempoRestante  = modoTieneReloj(estado.modo) ? duracionModo(estado.modo) : Infinity;
   frutas                 = [];
   mitades                = [];
   efectosVisuales        = [];
@@ -1002,7 +1071,7 @@ async function terminarPartida(esBomba = false) {
         puntos:         estado.puntaje,
         comboMaximo:    estado.comboMax,
         frutasCortadas: estado.frutasCorte,
-        duracionSegundos: DURACION - Math.max(0, estado.tiempoRestante),
+        duracionSegundos: Math.max(1, Math.round((performance.now() - estado.tiempoInicio) / 1000)),
       });
       if (finGuardando) finGuardando.style.display = 'none';
       if (finGuardado)  finGuardado.style.display  = 'block';
@@ -1095,6 +1164,10 @@ document.querySelectorAll('.modo-opcion').forEach(el => {
     document.querySelectorAll('.modo-opcion').forEach(m => m.classList.remove('activo'));
     el.classList.add('activo');
     estado.modo = el.dataset.modo;
+    // Previsualizar el HUD según el modo elegido (vidas / tiempo)
+    estado.vidas = VIDAS_INICIALES;
+    estado.tiempoRestante = modoTieneReloj(estado.modo) ? duracionModo(estado.modo) : Infinity;
+    actualizarHUD();
   });
 });
 
