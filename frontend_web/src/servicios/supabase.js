@@ -4,13 +4,15 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-// Las variables VITE_ son inyectadas por Vite en build time y en dev
-const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON) {
-  console.error('[Supabase] ⚠️ Variables de entorno faltantes. Revisa frontend_web/.env');
-}
+// Se prefieren las variables VITE_ (inyectadas por Vite en build/dev). Si el
+// entorno de build no las tiene (p. ej. Vercel sin configurar), se cae a los
+// valores PÚBLICOS del proyecto: la URL y la clave anon/publishable son seguras
+// de exponer (viajan en el bundle del navegador y están protegidas por RLS).
+// Así el frontend nunca se rompe por falta de variables de entorno.
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
+                   || 'https://xqukwugiisnjhwduaceg.supabase.co';
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+                   || 'sb_publishable_jajp89ObBesn6V4o3woJiQ_prYEm-Ds';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
