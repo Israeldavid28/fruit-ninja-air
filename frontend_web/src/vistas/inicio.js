@@ -167,8 +167,34 @@ function iniciarNavbar() {
   });
 }
 
+// ── ERROR DE AUTENTICACIÓN ────────────────────────────────
+/**
+ * Cuando algo falla en el flujo de auth (por ejemplo un enlace de confirmación
+ * caducado), Supabase devuelve el error al Site URL — es decir, a esta landing —
+ * y lo hace tanto en la query string como en el fragmento (#). Sin esto el
+ * usuario aterriza en la portada sin ninguna señal de que su acceso falló.
+ * @returns {boolean} true si se detectó un error y se redirigió al login.
+ */
+function redirigirSiHayErrorAuth() {
+  const query = new URLSearchParams(window.location.search);
+  const hash  = new URLSearchParams(window.location.hash.slice(1));
+
+  const error = query.get('error') ?? hash.get('error');
+  if (!error) return false;
+
+  const desc = query.get('error_description')
+            ?? hash.get('error_description')
+            ?? error;
+
+  console.error('[Inicio] Fallo de autenticación:', error, '—', desc);
+  window.location.replace(`/login.html?error=true&error_description=${encodeURIComponent(desc)}`);
+  return true;
+}
+
 // ── INICIALIZAR ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (redirigirSiHayErrorAuth()) return;
+
   iniciarCanvasPreview();
   cargarRankingPreview();
   cargarEstadisticas();

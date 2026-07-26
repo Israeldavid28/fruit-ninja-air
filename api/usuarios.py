@@ -90,7 +90,7 @@ async def obtener_perfil(user_id: str):
 async def crear_perfil(datos: dict):
     """
     Garantiza que un perfil exista para el usuario autenticado.
-    Se llama después del login de OAuth.
+    Se llama después de iniciar sesión.
 
     Recibe: { user_id, email, nombre_jugador }
     """

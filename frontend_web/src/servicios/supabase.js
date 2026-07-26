@@ -15,18 +15,44 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // El origen SIEMPRE se toma del navegador actual (window.location.origin).
-// Así el redirect funciona automáticamente en localhost (dev) y en el dominio
-// de Vercel (producción) sin depender de una variable hardcodeada en el build.
+// Así el enlace de confirmación funciona igual en localhost (dev) y en el
+// dominio de Vercel (producción), sin depender de una variable del build.
 const APP_ORIGIN = window.location.origin;
 
 // ── AUTH ─────────────────────────────────────────────────
+// La autenticación es exclusivamente por correo y contraseña gestionada por
+// Supabase. No se usa ningún proveedor externo (OAuth), de modo que el sistema
+// no depende de servicios de terceros para registrar jugadores.
 
-export async function loginConGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: `${APP_ORIGIN}/dojo.html` },
+/**
+ * Registra un usuario nuevo con correo y contraseña.
+ *
+ * El nombre se guarda en `options.data`, que Supabase escribe en
+ * `raw_user_meta_data`. El trigger handle_new_user() lo lee desde ahí para
+ * rellenar `nombre_jugador` en la tabla perfiles.
+ *
+ * @returns {Promise<{ session: object|null, user: object|null }>} Si `session`
+ *   es null, el proyecto tiene activada la confirmación por correo y el usuario
+ *   aún debe verificarlo antes de poder entrar.
+ */
+export async function registrarConEmail(email, password, nombreJugador) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: nombreJugador },
+      emailRedirectTo: `${APP_ORIGIN}/dojo.html`,
+    },
   });
   if (error) throw error;
+  return data;
+}
+
+/** Inicia sesión con correo y contraseña ya registrados. */
+export async function loginConEmail(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
 }
 
 export async function cerrarSesion() {
@@ -39,7 +65,7 @@ export async function obtenerSesion() {
   return data.session;
 }
 
-/** Espera hasta que Supabase resuelva el estado de auth (útil después del callback OAuth) */
+/** Espera hasta que Supabase resuelva el estado de auth (útil tras confirmar el correo) */
 export function esperarSesion() {
   return new Promise((resolve) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -79,7 +105,7 @@ export async function crearOActualizarPerfil(userId, datos) {
 /**
  * Sincroniza el perfil del usuario con el backend.
  * Esto asegura que el perfil exista en la BD y tenga todos los campos correctos.
- * Se llama después del login OAuth.
+ * Se llama después de iniciar sesión.
  */
 async function sincronizarPerfilConBackend(user) {
   try {
@@ -125,7 +151,7 @@ export async function garantizarPerfil(user) {
     throw new Error('Usuario no autenticado correctamente');
   }
 
-  const nombreGoogle = user.user_metadata?.full_name
+  const nombrePorDefecto = user.user_metadata?.full_name
                     ?? user.user_metadata?.name
                     ?? user.email?.split('@')[0]
                     ?? 'Ninja';
@@ -147,7 +173,7 @@ export async function garantizarPerfil(user) {
     console.log('[Supabase] Perfil existente encontrado:', existente.id);
     // Perfil ya existe — actualizar updated_at y rellenar campos que puedan faltar
     const patch = { updated_at: new Date().toISOString() };
-    if (!existente.nombre_jugador) patch.nombre_jugador = nombreGoogle;
+    if (!existente.nombre_jugador) patch.nombre_jugador = nombrePorDefecto;
     if (!existente.email)          patch.email          = user.email;
 
     const { data: actualizado } = await supabase
@@ -166,7 +192,7 @@ export async function garantizarPerfil(user) {
   const nuevosPerfil = {
     id:                user.id,
     email:             user.email,
-    nombre_jugador:    nombreGoogle,
+    nombre_jugador:    nombrePorDefecto,
     xp_total:          0,
     rango:             'Estudiante de la Hoja',
     partidas_jugadas:  0,
@@ -186,7 +212,7 @@ export async function garantizarPerfil(user) {
     const perfilFallback = {
       id: user.id,
       email: user.email,
-      nombre_jugador: nombreGoogle,
+      nombre_jugador: nombrePorDefecto,
       rango: 'Estudiante de la Hoja',
       xp_total: 0,
       partidas_jugadas: 0,

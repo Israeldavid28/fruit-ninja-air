@@ -2,7 +2,7 @@
  * dojo.js — Motor del juego Frutix
  * Canvas 2D + WebSocket MediaPipe + Lógica de frutas + Anti-Cheat
  */
-import { obtenerUsuario, obtenerSesion, esperarSesion, cerrarSesion, garantizarPerfil } from '../servicios/supabase.js';
+import { supabase, cerrarSesion, garantizarPerfil } from '../servicios/supabase.js';
 import { procesarPartida } from '../servicios/middleware.js';
 import { silenciarMusica } from '../servicios/musica.js';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
@@ -1066,8 +1066,9 @@ const btnComenzar    = document.getElementById('btn-comenzar');
 /**
  * Resuelve la sesión del usuario.
  * - Modo invitado: lee localStorage.
- * - OAuth (viene de Google con ?code=): espera el evento SIGNED_IN del SDK
- *   antes de intentar leer la sesión, para evitar la condición de carrera PKCE.
+ * - Confirmación de correo (llega con ?code= o #access_token): espera el evento
+ *   SIGNED_IN del SDK antes de leer la sesión, para evitar la condición de
+ *   carrera mientras Supabase canjea el token del enlace.
  * - Sesión existente: lee directamente con getSession().
  */
 async function resolverSesion() {
@@ -1080,15 +1081,15 @@ async function resolverSesion() {
 
   const params = new URLSearchParams(window.location.search);
 
-  // Redirigir errores OAuth al login con mensaje
+  // Redirigir errores de autenticación al login con mensaje
   if (params.has('error')) {
     const desc = encodeURIComponent(params.get('error_description') || 'Error desconocido');
     window.location.href = `/login.html?error=true&error_description=${desc}`;
     return false;
   }
 
-  // Si viene con ?code=, Supabase todavía está canjeando el código PKCE.
-  // Usamos onAuthStateChange para esperar el evento SIGNED_IN antes de continuar.
+  // Si viene con ?code= (o #access_token), Supabase todavía está canjeando el
+  // token del enlace de confirmación. Esperamos el evento SIGNED_IN para seguir.
   const tieneCode = params.has('code') || window.location.hash.includes('access_token');
 
   if (tieneCode) {
@@ -1097,7 +1098,7 @@ async function resolverSesion() {
         const TIMEOUT_MS = 8000;
         const tid = setTimeout(() => {
           sub.unsubscribe();
-          reject(new Error('Tiempo de espera agotado al iniciar sesión con Google.'));
+          reject(new Error('Tiempo de espera agotado al confirmar la sesión.'));
         }, TIMEOUT_MS);
 
         const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -1109,7 +1110,7 @@ async function resolverSesion() {
         });
       });
     } catch (err) {
-      console.error('[Dojo] Error OAuth:', err.message);
+      console.error('[Dojo] Error al resolver la sesión:', err.message);
       window.location.href = `/login.html?error=true&error_description=${encodeURIComponent(err.message)}`;
       return false;
     }

@@ -22,7 +22,7 @@ SET
 FROM auth.users u
 WHERE p.id = u.id;
 
--- 3. Trigger que crea perfil completo al registrarse con Google
+-- 3. Trigger que crea perfil completo al registrarse
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN

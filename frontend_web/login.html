@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Iniciar Sesión — Frutix</title>
-  <meta name="description" content="Inicia sesión con Google para guardar tus puntajes y aparecer en el ranking de Frutix." />
+  <meta name="description" content="Crea tu cuenta o inicia sesión para guardar tus puntajes y aparecer en el ranking de Frutix." />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍊</text></svg>" />
   <link rel="stylesheet" href="/estilos/principal.css" />
 </head>
@@ -47,21 +47,40 @@
       <!-- Mensaje de error (oculto por defecto) -->
       <div id="mensaje-error" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; font-size: 0.82rem; text-align: center;"></div>
 
-      <!-- Botones de login -->
-      <div id="login-btns" style="display: grid; gap: 12px; grid-template-columns: 1fr;">
+      <!-- Aviso informativo (ej: confirma tu correo) -->
+      <div id="mensaje-aviso" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; font-size: 0.82rem; text-align: center;"></div>
 
-        <!-- Google -->
-        <button type="button" id="btn-google" class="btn btn-google" style="display: flex; height: 56px; width: 100%; align-items: center; justify-content: center; gap: 12px; border-radius: 12px; background-color: #ffffff; color: #000000;">
-          <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          <span style="font-size: 1rem; font-weight: 600;">Google</span>
-        </button>
-
+      <!-- Selector Entrar / Crear cuenta -->
+      <div id="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab activo" data-modo="entrar" role="tab" aria-selected="true">Entrar</button>
+        <button type="button" class="auth-tab" data-modo="registro" role="tab" aria-selected="false">Crear cuenta</button>
       </div>
+
+      <!-- Formulario de correo y contraseña -->
+      <form id="form-email" novalidate>
+        <div id="campo-nombre" class="campo" style="display: none;">
+          <label class="campo__label" for="input-nombre">Nombre de ninja</label>
+          <input class="campo__input" id="input-nombre" type="text" maxlength="24"
+                 autocomplete="nickname" placeholder="Ej: NinjaFrutal" />
+        </div>
+
+        <div class="campo">
+          <label class="campo__label" for="input-email">Correo electrónico</label>
+          <input class="campo__input" id="input-email" type="email" required
+                 autocomplete="email" placeholder="tucorreo@ejemplo.com" />
+        </div>
+
+        <div class="campo">
+          <label class="campo__label" for="input-password">Contraseña</label>
+          <input class="campo__input" id="input-password" type="password" required
+                 minlength="6" autocomplete="current-password" placeholder="Mínimo 6 caracteres" />
+        </div>
+
+        <button type="submit" id="btn-email" class="btn btn-primario"
+                style="display: flex; height: 52px; width: 100%; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; margin-top: 4px; font-size: 0.95rem; font-weight: 700;">
+          ⚔️ Entrar al Dojo
+        </button>
+      </form>
 
       <!-- Divider -->
       <div style="display: flex; align-items: center; gap: 12px; margin: 24px 0;">
@@ -94,8 +113,65 @@
 <style>
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Selector Entrar / Crear cuenta ── */
+#auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-fn-borde);
+}
+.auth-tab {
+  padding: 10px 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-fn-tenue);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.auth-tab:hover { color: var(--color-fn-claro); }
+.auth-tab.activo {
+  background: var(--color-fn-naranja);
+  color: #0a0a0f;
+}
+
+/* ── Campos del formulario ── */
+#form-email { display: flex; flex-direction: column; gap: 14px; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-fn-tenue);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.campo__input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-fn-borde);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--color-fn-blanco);
+  font-size: 0.92rem;
+  font-family: inherit;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.campo__input::placeholder { color: rgba(255, 255, 255, 0.28); }
+.campo__input:focus {
+  outline: none;
+  border-color: var(--color-fn-naranja);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
+}
+.campo__input:disabled { opacity: 0.55; cursor: not-allowed; }
+
 @media (max-width: 480px) {
-  #login-btns { grid-template-columns: 1fr; }
   .mx-auto { width: 100% !important; max-width: 100% !important; padding: 24px 16px !important; }
 }
 </style>
