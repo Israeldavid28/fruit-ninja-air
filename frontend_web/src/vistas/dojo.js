@@ -236,23 +236,46 @@ function conectarWS() {
 let handLandmarker = null;
 let lastVideoTime = -1;
 
+// Rutas AUTO-HOSPEDADAS (mismo origen que la app). Nada de CDNs: si la página
+// abre, el modelo carga — funciona aunque el WiFi del sitio bloquee jsdelivr/
+// google, e incluso offline/localhost durante la presentación.
+const MP_WASM_PATH  = '/mediapipe/wasm';
+const MP_MODEL_PATH = '/mediapipe/hand_landmarker.task';
+
+// Suavizado exponencial del puntero (0 = congelado, 1 = sin suavizar).
+const SUAVIZADO = 0.5;
+
+function crearHandLandmarker(vision, delegate) {
+  return HandLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: MP_MODEL_PATH,
+      delegate,
+    },
+    runningMode: "VIDEO",
+    // Detectamos hasta 2 manos para poder QUEDARNOS con la del jugador
+    // (la más cercana a la cámara) e ignorar las del público detrás.
+    numHands: 2,
+    minHandDetectionConfidence: 0.5,
+    minHandPresenceConfidence:  0.5,
+    minTrackingConfidence:      0.5,
+  });
+}
+
 async function inicializarMediaPipeLocal() {
   if (estado.fuenteDeteccion !== 'local') return;
   try {
     wsBadge.className = 'ws-badge';
     wsTexto.textContent = 'Cargando IA Local...';
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-    );
-    handLandmarker = await HandLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-        delegate: "GPU"
-      },
-      runningMode: "VIDEO",
-      numHands: 1
-    });
-    
+    const vision = await FilesetResolver.forVisionTasks(MP_WASM_PATH);
+
+    // Intentamos GPU; si el delegate falla (drivers/proyector), caemos a CPU.
+    try {
+      handLandmarker = await crearHandLandmarker(vision, "GPU");
+    } catch (errGpu) {
+      console.warn("MediaPipe GPU no disponible, usando CPU:", errGpu);
+      handLandmarker = await crearHandLandmarker(vision, "CPU");
+    }
+
     wsBadge.className = 'ws-badge conectado';
     wsTexto.textContent = 'IA Local Activa';
     loopDeteccionLocal();
@@ -263,6 +286,26 @@ async function inicializarMediaPipeLocal() {
   }
 }
 
+// De todas las manos detectadas, devuelve el índice de la MÁS GRANDE en pantalla
+// (= la más cercana a la cámara = el jugador). El público de fondo aparece más
+// pequeño, así que la espada no salta hacia sus manos.
+function elegirManoJugador(landmarks) {
+  let mejor = 0;
+  let mejorTam = -1;
+  for (let i = 0; i < landmarks.length; i++) {
+    let minX = 1, minY = 1, maxX = 0, maxY = 0;
+    for (const p of landmarks[i]) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const tam = (maxX - minX) + (maxY - minY); // proxy del tamaño (bounding box)
+    if (tam > mejorTam) { mejorTam = tam; mejor = i; }
+  }
+  return mejor;
+}
+
 async function loopDeteccionLocal() {
   if (estado.fuenteDeteccion === 'local' && handLandmarker && webcamEl.videoWidth > 0) {
     let startTimeMs = performance.now();
@@ -270,8 +313,16 @@ async function loopDeteccionLocal() {
       lastVideoTime = webcamEl.currentTime;
       let results = handLandmarker.detectForVideo(webcamEl, startTimeMs);
       if (results.landmarks && results.landmarks.length > 0) {
-        const d = results.landmarks[0][8];
-        dedoPos = { x: 1 - d.x, y: d.y };
+        const idx = elegirManoJugador(results.landmarks);
+        const d = results.landmarks[idx][8];   // punta del índice
+        const objetivo = { x: 1 - d.x, y: d.y }; // X invertida (espejo de cámara)
+        // Suavizado: si es el primer frame, saltamos directo; si no, interpolamos.
+        dedoPos = dedoPos
+          ? {
+              x: dedoPos.x + (objetivo.x - dedoPos.x) * SUAVIZADO,
+              y: dedoPos.y + (objetivo.y - dedoPos.y) * SUAVIZADO,
+            }
+          : objetivo;
       }
     }
   }
