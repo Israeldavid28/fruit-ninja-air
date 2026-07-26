@@ -3,7 +3,8 @@
  * El middleware valida puntajes con Anti-Cheat antes de guardarlos.
  */
 
-const API_BASE = '/api';
+// El router del backend se monta bajo /api/usuarios (ver api/index.py)
+const API_BASE = '/api/usuarios';
 
 /**
  * Envía el resultado de una partida al middleware para validación y guardado.

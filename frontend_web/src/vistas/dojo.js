@@ -1077,7 +1077,10 @@ async function terminarPartida(esBomba = false) {
       if (finGuardado)  finGuardado.style.display  = 'block';
     } catch (e) {
       if (finGuardando) finGuardando.style.display = 'none';
-      if (finError)     finError.style.display     = 'block';
+      if (finError) {
+        finError.textContent = `⚠ No se pudo guardar: ${e.message}`;
+        finError.style.display = 'block';
+      }
       console.error('[Dojo] Error al guardar:', e.message);
     }
   } else {
