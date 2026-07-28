@@ -1,3 +1,5 @@
 fastapi
 supabase
 pydantic
+python-dotenv
+uvicorn

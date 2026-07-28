@@ -1,5 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Carga las variables de .env en ejecución LOCAL (uvicorn desde la raíz).
+# En Vercel no hay .env y las variables ya están en el entorno → no-op.
+# Debe ir ANTES de importar el router, que lee las variables al importarse.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from api.usuarios import router as usuarios_router
 
 app = FastAPI(title="Jutsu Academy API", description="Middleware para Fruit Ninja Air")

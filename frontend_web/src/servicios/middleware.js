@@ -11,18 +11,38 @@ const API_BASE = '/api/usuarios';
  * @param {object} datos - { userId, nombreJugador, puntos, comboMaximo, frutasCortadas, duracionSegundos }
  */
 export async function procesarPartida(datos) {
+  // El backend (Pydantic) exige snake_case; el frontend usa camelCase.
+  // Sin este mapeo, FastAPI devuelve 422 y el error salía como "[object Object]".
+  const payload = {
+    user_id:         datos.userId,
+    nombre_jugador:  datos.nombreJugador,
+    puntos:          datos.puntos,
+    combo_maximo:    datos.comboMaximo,
+    tiempo_segundos: datos.duracionSegundos,
+  };
+
   const res = await fetch(`${API_BASE}/procesar-partida`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(datos),
+    body:    JSON.stringify(payload),
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
-    throw new Error(err.detail ?? `HTTP ${res.status}`);
+    const err = await res.json().catch(() => null);
+    throw new Error(mensajeDeError(err, res.status));
   }
 
   return res.json();
+}
+
+// Normaliza el "detail" de FastAPI (string, objeto, o lista de errores de
+// validación) a un mensaje legible, en vez de mostrar "[object Object]".
+function mensajeDeError(err, status) {
+  const d = err?.detail;
+  if (typeof d === 'string') return d;
+  if (Array.isArray(d))      return d.map(e => e?.msg || JSON.stringify(e)).join('; ');
+  if (d && typeof d === 'object') return JSON.stringify(d);
+  return `HTTP ${status}`;
 }
 
 /**

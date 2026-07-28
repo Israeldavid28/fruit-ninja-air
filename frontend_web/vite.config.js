@@ -6,6 +6,14 @@ export default defineConfig({
   server: {
     port: 3000,
     open: '/index.html',
+    // En local, /api/* se redirige al backend FastAPI (uvicorn en :8000),
+    // igual que en Vercel. Así el guardado de puntajes funciona sin desplegar.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',
